@@ -5,6 +5,8 @@ import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
 import { DamageHealComposer } from "@/components/damage-heal-composer";
 import { CharacterHp } from "@/components/character-hp";
+import { ConditionComposer } from "@/components/condition-composer";
+import { CharacterConditions } from "@/components/character-conditions";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -50,9 +52,13 @@ export default async function DmConsolePage() {
         <div>
           <div className="runic mb-3">Demo character</div>
           <CharacterHp sessionId={sessionId} characterId={characterId} maxHp={maxHp} />
+          <div className="mt-3">
+            <CharacterConditions sessionId={sessionId} characterId={characterId} />
+          </div>
         </div>
 
         <DamageHealComposer sessionId={sessionId} targetId={characterId} />
+        <ConditionComposer sessionId={sessionId} targetId={characterId} />
 
         <div>
           <div className="runic mb-3">Session log</div>

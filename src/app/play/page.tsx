@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { getOrCreateDemoSession, getOrCreateDemoCharacter } from "@/app/dm/actions";
 import { CharacterHp } from "@/components/character-hp";
+import { CharacterConditions } from "@/components/character-conditions";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -40,13 +41,17 @@ export default async function PlayerAppPage() {
           </p>
         </div>
 
-        <div className="plate p-6">
+        <div className="plate flex flex-col gap-4 p-6">
           <CharacterHp
             sessionId={sessionId}
             characterId={characterId}
             maxHp={maxHp}
             label="Demo character"
           />
+          <div>
+            <div className="runic mb-2">Conditions</div>
+            <CharacterConditions sessionId={sessionId} characterId={characterId} />
+          </div>
         </div>
       </div>
     </main>

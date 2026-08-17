@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   newEventId,
   proposedGameEventSchema,
+  conditionNameSchema,
   type ProposedGameEvent,
 } from "@/lib/events";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -255,6 +256,57 @@ export async function proposeHealEvent(
     type: "heal",
     actor: null,
     payload: { v: 1, targetId, amount, source: null },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for applying or removing a condition. Like
+ * HP, active conditions are never stored as a column — they're a fold over
+ * apply/remove condition events (see CharacterConditions), where the last
+ * event for a given condition name wins.
+ */
+export async function proposeConditionEvent(
+  sessionId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const conditionResult = conditionNameSchema.safeParse(formData.get("condition"));
+  const action = formData.get("action") === "remove" ? "remove" : "apply";
+  const durationRaw = formData.get("durationRounds");
+  const durationRounds =
+    durationRaw && String(durationRaw).trim() !== "" ? Number(durationRaw) : null;
+
+  if (!conditionResult.success) {
+    return { error: "Pick a condition." };
+  }
+
+  if (durationRounds !== null && (!Number.isInteger(durationRounds) || durationRounds <= 0)) {
+    return { error: "Duration must be a positive whole number of rounds, or left blank." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "condition",
+    actor: null,
+    payload: {
+      v: 1,
+      targetId,
+      condition: conditionResult.data,
+      action,
+      durationRounds,
+      source: null,
+    },
     visibility: "public",
     proposed_by: "human",
   });

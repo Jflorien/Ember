@@ -81,18 +81,18 @@ event ordering within a session is enforced at the database level.
 ## What's not built yet
 
 - The real DM console, player sheet, and table-view UI — `/dm`, `/play`, and
-  `/table` currently only prove the event pipeline and a live HP bar; they're
-  not the panel layouts from the design docs yet.
+  `/table` currently only prove the event pipeline and a live character
+  sheet (HP + conditions); they're not the panel layouts from the design
+  docs yet.
 - The rules engine — `src/app/dm/actions.ts` validates a proposed event's
   *shape* via zod and commits it, but nothing checks legality against game
   state (e.g. that an attack's target is in range). Only `narration`,
-  `damage`, and `heal` events have a UI; the other 10 types in
+  `damage`, `heal`, and `condition` events have a UI; the other 9 types in
   `src/lib/events/schema.ts` are unused so far.
 - Campaign/character CRUD UI — every user gets one auto-provisioned "Demo
   campaign" and "Demo character" (`getOrCreateDemoSession` /
   `getOrCreateDemoCharacter`) instead of real creation flows or invites.
-- Everything on a character sheet besides HP — conditions, spell slots,
-  inventory.
+- Spell slots and inventory on the character sheet.
 - The AI dungeon master itself.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server
   action, but there's no corresponding "set new password" page for the
