@@ -41,8 +41,8 @@ begin
      'rls-test-outsider@ember.invalid', crypt('not-a-real-password', gen_salt('bf')),
      now(), now(), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb);
 
-  insert into public.campaigns (id, owner_id, name)
-  values (v_campaign, v_dm, 'RLS leak test campaign');
+  insert into public.campaigns (id, owner_id, name, invite_code)
+  values (v_campaign, v_dm, 'RLS leak test campaign', 'RLSTEST1');
 
   insert into public.memberships (campaign_id, user_id, role)
   values (v_campaign, v_player, 'player');
