@@ -82,9 +82,10 @@ event ordering within a session is enforced at the database level.
 
 - The actual DM console, player sheet, and table-view UI — those routes are
   placeholder shells describing what will live there.
-- The rules engine / event pipeline itself (proposing, validating, and
-  committing `GameEvent`s) — the homepage documents the design, but no
-  engine code exists yet.
+- The rules engine / event pipeline itself (proposing, validating against
+  game state, and committing `GameEvent`s) — `src/lib/events/` has the zod
+  schema for every event type's *shape*, but nothing yet checks legality
+  (e.g. that an attack's target is in range) or writes to `events`.
 - Realtime subscriptions to `events`/`sessions` (Supabase Realtime channels)
   are not wired up.
 - Campaign/character CRUD UI — the schema and RLS exist, but there's no UI
@@ -125,8 +126,12 @@ point the tokens at them:
 
 Nothing else needs to change — every component reads the tokens, not the families.
 
-## A note on AGENTS.md / CLAUDE.md
+## A note on AGENTS.md
 
-`create-next-app` generates an `AGENTS.md` (aliased by `CLAUDE.md`) telling coding agents to read
-`node_modules/next/dist/docs/` before writing code. That directory does not exist in this install,
-so the instruction is inert. Delete both files if you don't want agents acting on them.
+`next dev` auto-generates an untracked `AGENTS.md` at the repo root, telling coding agents to read
+`node_modules/next/dist/docs/` before writing code. That directory doesn't exist in this install, so
+the instruction is inert — and since it's regenerated on every `next dev` run, deleting it doesn't
+stick. Safe to ignore; it's already untracked and gitignored-in-spirit.
+
+This is unrelated to `CLAUDE.md` at the repo root, which is this project's real, hand-maintained
+instructions file (architecture, conventions, working agreements) — keep that one.

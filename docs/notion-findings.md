@@ -20,6 +20,9 @@ neither reproducible nor auditable.
 
 **Action:** delete the internal-roll language from the AI DM page.
 
+**Status: done (2026-08-17).** The AI DM page's §2.4 step 3 now says rolls are requested from the
+server's seeded dice service and never generated internally, matching §10.3.
+
 ### NPC attitude scale
 
 - `7. Social Interaction` §7.1 — four states: Friendly → Neutral → Suspicious → Hostile
@@ -27,6 +30,10 @@ neither reproducible nor auditable.
 
 **Action:** pick one before it becomes an enum column. The four-state version carries more
 signal for an AI DM tracking relationships.
+
+**Status: done (2026-08-17).** Picked the four-state scale (Friendly → Neutral → Suspicious →
+Hostile). ADVENTURING RULES now points at 7. Social Interaction as the canonical source instead of
+restating its own three-state version.
 
 ### Movement economy
 
@@ -38,10 +45,18 @@ signal for an AI DM tracking relationships.
 **Action:** the schema needs a speed pool with remaining feet, not a boolean. The second page
 is correct and matches SRD.
 
+**Status: done (2026-08-17).** 3. Combat System §3.3 now describes a movement pool spendable in
+any increment before/between/after actions, matching Combat Rules. The `move` event schema still
+needs to carry remaining feet, not a boolean — that's an implementation task, not a doc fix.
+
 ### Encumbrance is optional or it isn't
 
 `6. Exploration Rules` and `Rules Framework` both mark it optional; `ADVENTURING RULES` states
 `STR × 15` flatly. **Action:** make it a campaign-level settings flag.
+
+**Status: done (2026-08-17).** Both pages now describe encumbrance as a campaign-level setting,
+off by default, using `STR × 15` when enabled. The campaign-settings schema still needs the actual
+flag — see `CMP-02` in `docs/requirements-map.html`.
 
 ---
 
@@ -74,6 +89,13 @@ The UI spec contains sixteen panels, all player-facing. The DM console — rough
 app's surface area — has no spec at all. Same for the loot-distribution and AI-narration surfaces
 that `Basic Flow` steps 4, 6 and 8 assume exist.
 
+**Status: first draft (2026-08-17).** Added an 11-panel first-pass spec — [DM Console
+Panels](https://app.notion.com/p/3bfe4db5a46b8129af18c01f3f0c02d8) — covering session setup,
+encounter staging, live map control, the event propose/override/undo console, hidden-information
+authoring, NPC/monster management, loot distribution, and the AI co-pilot mode. It explicitly
+covers the loot and AI-narration surfaces this gap called out. Needs review before it's treated as
+authoritative — it was written from the repo's architecture docs, not from a UI/UX pass.
+
 ### Dropped sci-fi threads
 
 `2.6 Conditions` ends with *"(Plus custom sci-fi variants)"* — none are ever named.
@@ -82,6 +104,9 @@ supporting mechanics anywhere. Almost certainly vestigial.
 
 **Action:** delete them, or they will end up in the AI DM's context window as unexplained
 world-building and it will improvise on them.
+
+**Status: done (2026-08-17).** Removed the sci-fi-variants line from 2. Core Mechanics §2.6, and
+the Zero-G / Corrupted tags from 6. Exploration Rules §6.4.
 
 ### AI-generated stat blocks
 
