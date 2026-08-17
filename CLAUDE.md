@@ -164,14 +164,25 @@ relevant events for a character into current state, live over Realtime, shared b
 `CharacterConditions` (the full sheet, on `/dm` and `/play`) and `PartyMemberTile` (the compact
 Party Status Strip, showing every character in the campaign on both surfaces).
 
+Also built, out of roadmap order — a visual pass on `/table`: `TvEventFeed`
+(`src/components/tv-event-feed.tsx`) applies "heat is state" to recency instead of just
+resources, the one place in the app that hadn't done that yet. Newest event large and
+forge-hot, older ones shrinking and cooling toward ash/basalt as they recede — four tiers, size
+*and* color both carrying the signal per the design system's "never rely on colour alone" rule.
+Caught a real Tailwind gotcha doing it: `shadow-[var(--glow-md)]` silently compiles to a
+shadow-*color* utility, not a full `box-shadow`, because Tailwind's arbitrary-value heuristic
+reads the bracket contents as a color; the fix is the arbitrary-property form,
+`[box-shadow:var(--glow-md)]`. Worth remembering anywhere else a CSS custom property holding a
+full shadow value gets used as a Tailwind arbitrary value.
+
 **Not built:** the rules engine (validation of a proposed event against game state — the schema
 only validates *shape*, not legality), the other 9 event types' UI (`move`, `cast`, `attack`,
 etc.), spell slots and inventory on the character sheet, a campaign/character *picker* (a user
 with more than one campaign only ever sees their most recently created one; the DM console
 targets its damage/heal/condition composers at whichever character was created first, not a
-chosen one), the three surfaces' real designs (DM console/player app/table are still
-single-purpose proof pages, not the panel layouts in Notion's `DM Console Panels` / player UI
-spec), anything AI.
+chosen one), the three surfaces' real designs beyond that one visual pass (DM console/player app
+are still single-purpose proof pages, not the panel layouts in Notion's `DM Console Panels` /
+player UI spec), anything AI.
 
 ### Next, in order
 

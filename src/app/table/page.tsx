@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyPlayerCampaign } from "@/app/dm/actions";
-import { LiveEventFeed } from "@/components/live-event-feed";
+import { TvEventFeed } from "@/components/tv-event-feed";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -32,19 +32,13 @@ export default async function TableViewPage() {
   const { sessionId } = campaign;
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-basalt-990 px-6 py-16">
-      <div className="w-full max-w-2xl">
-        <span className="runic">Live — early proof</span>
-        <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
-          Reading straight from Realtime.
-        </h1>
-        <p className="mt-2 text-sm text-ash-300">
-          Nothing on this page is polled. Every row below arrived the
-          moment a DM console committed it.
-        </p>
-        <div className="mt-8">
-          <LiveEventFeed sessionId={sessionId} />
-        </div>
+    <main className="relative flex min-h-screen flex-col items-center overflow-hidden bg-basalt-990 px-10 py-16">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(242,100,25,.16),transparent_70%)] blur-3xl"
+      />
+      <div className="relative w-full max-w-4xl">
+        <TvEventFeed sessionId={sessionId} />
       </div>
     </main>
   );
