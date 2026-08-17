@@ -86,12 +86,17 @@ event ordering within a session is enforced at the database level.
   layouts from the design docs yet.
 - Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
   event's *shape* via zod, and a database trigger
-  (`supabase/migrations/0004_validate_event_targets.sql`) now rejects a
-  `damage`/`heal`/`condition` event whose target isn't a real character in
-  the same campaign, but nothing checks legality beyond that (e.g. that an
-  attack's target is in range). Only `narration`, `damage`, `heal`, and
-  `condition` events have a UI; the other 9 types in
-  `src/lib/events/schema.ts` are unused so far.
+  (`supabase/migrations/0004_validate_event_targets.sql`, widened to cover
+  `attack` in `0005_validate_attack_targets.sql`) rejects a `damage`/`heal`/
+  `condition`/`attack` event whose target isn't a real character in the same
+  campaign, but nothing checks legality beyond that (e.g. that an attack's
+  target is in range, or that a hit actually deals damage — that's still a
+  separate manual event). Only `narration`, `damage`, `heal`, `condition`,
+  and `attack` events have a UI; the other 8 types in
+  `src/lib/events/schema.ts` are unused so far. Dice are rolled server-side
+  via a seeded PRNG (`src/lib/dice.ts`) — the seed and every raw roll are
+  committed as part of the event payload, so an attack roll is auditable
+  without a separate log.
 - Member-management UI (kick, change role, regenerate an invite code) once
   someone's joined a campaign. A campaign/character picker exists now
   (`CampaignSwitcher` on `/dm` and `/play`, plus a target `<select>` in the

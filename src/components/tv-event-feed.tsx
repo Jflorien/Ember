@@ -1,10 +1,7 @@
 "use client";
 
-import { useSessionEvents, type SessionEventRow } from "@/lib/hooks/use-session-events";
-
-function narrationText(row: Pick<SessionEventRow, "type" | "payload">) {
-  return typeof row.payload?.text === "string" ? row.payload.text : `[${row.type}]`;
-}
+import { useSessionEvents } from "@/lib/hooks/use-session-events";
+import { describeEvent } from "@/lib/events";
 
 /**
  * Rank 0 = newest. Four heat tiers, each pairing size *and* color so the
@@ -62,7 +59,7 @@ export function TvEventFeed({ sessionId, limit = 8 }: { sessionId: string; limit
         return (
           <li key={event.id} className={`flex items-baseline gap-4 ${tier.wrap}`}>
             <span className={`font-mono text-xs tabular-nums ${tier.seq}`}>#{event.seq}</span>
-            <span className={tier.text}>{narrationText(event)}</span>
+            <span className={tier.text}>{describeEvent(event)}</span>
           </li>
         );
       })}

@@ -7,7 +7,7 @@ export type SessionEventRow = {
   id: string;
   seq: number;
   type: string;
-  payload: { text?: string };
+  payload: Record<string, unknown>;
   committed_at: string;
 };
 

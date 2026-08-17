@@ -1,10 +1,7 @@
 "use client";
 
 import { useSessionEvents } from "@/lib/hooks/use-session-events";
-
-function narrationText(row: { type: string; payload: { text?: string } }) {
-  return typeof row.payload?.text === "string" ? row.payload.text : `[${row.type}]`;
-}
+import { describeEvent } from "@/lib/events";
 
 /**
  * Read-only, live view of a session's committed events. This is the "table
@@ -25,7 +22,7 @@ export function LiveEventFeed({ sessionId }: { sessionId: string }) {
           <span className="font-mono text-xs tabular-nums text-ash-500">
             #{event.seq}
           </span>
-          <span className="text-sm text-ash-100">{narrationText(event)}</span>
+          <span className="text-sm text-ash-100">{describeEvent(event)}</span>
         </li>
       ))}
     </ol>

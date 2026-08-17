@@ -98,6 +98,32 @@ exception
     end if;
 end $$;
 
+-- Attack against a character actually in this session's campaign: allowed
+-- (0005_validate_attack_targets.sql widened the same trigger to cover attack).
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01TARGETTESTEEEEEEEEEEEEEE', '44444444-4444-4444-4444-444444444444', 'attack', null,
+  '{"v":1,"attackerId":"55555555-5555-5555-5555-555555555555","targetId":"55555555-5555-5555-5555-555555555555","roll":15,"rawRolls":[15],"seed":1,"modifier":3,"total":18,"targetAc":14,"advantage":"normal","critical":false,"hit":true}'::jsonb,
+  'public', 'human'
+);
+
+-- Attack against a real character from a *different* campaign: must be rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01TARGETTESTFFFFFFFFFFFFFF', '44444444-4444-4444-4444-444444444444', 'attack', null,
+    '{"v":1,"attackerId":"55555555-5555-5555-5555-555555555555","targetId":"66666666-6666-6666-6666-666666666666","roll":15,"rawRolls":[15],"seed":1,"modifier":3,"total":18,"targetAc":14,"advantage":"normal","critical":false,"hit":true}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: attack against a character from a different campaign was accepted';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 rollback;
 
 select 'event target validation test passed' as result;

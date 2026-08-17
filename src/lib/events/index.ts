@@ -1,4 +1,6 @@
 export { newEventId } from "./id";
+export { describeEvent } from "./describe";
+export type { DescribableEvent } from "./describe";
 export {
   DAMAGE_TYPES,
   CONDITIONS,

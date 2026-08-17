@@ -195,12 +195,33 @@ chrome-free per spec — but still honours `?campaign=<id>` for deep-linking. In
 characters ahead of the damage/heal/condition composers, defaulting to the first character but
 letting the DM pick any of them as `targetId`, replacing the old hardcoded `members[0]`.
 
-**Not built:** the rest of the rules engine (this is one invariant, not full legality — nothing
-yet checks an attack's range, a spell's components, whether a character has the resource it's
-spending), the other 9 event types' UI (`move`, `cast`, `attack`, etc.), spell slots and inventory
-on the character sheet, the three surfaces' real designs beyond the `/table` visual pass (DM
-console/player app are still single-purpose proof pages, not the panel layouts in Notion's
-`DM Console Panels` / player UI spec), anything AI.
+The `attack` event type is built end to end, and with it the first piece of CLAUDE.md's "Dice
+are rolled server-side. Seeded, logged, auditable." constraint — previously true of nothing in
+the codebase. `src/lib/dice.ts` draws from a `crypto.randomInt`-seeded `mulberry32` PRNG;
+`proposeAttackEvent` (`src/app/dm/actions.ts`) is the only caller, so a client sends attacker/
+target/modifier/advantage and never a die result, and the seed plus every raw roll (both dice
+for advantage/disadvantage, not just the kept one) are committed as part of the payload — the
+event log is the audit trail, not a separate one. Target AC is read from the target's own
+`characters.sheet` (defaulting to 10, same fallback pattern as `maxHp`), never trusted from the
+form. `AttackComposer` (`src/components/attack-composer.tsx`) adds a second picker — Attacker,
+alongside the existing Target — to `TargetedComposers`. The event-target-validation trigger from
+0004 was widened in `supabase/migrations/0005_validate_attack_targets.sql` to cover `attack`
+too, since it carries the same `targetId` shape; `LiveEventFeed`/`TvEventFeed` both gained a
+real attack description ("Attack: 19+15 = 34 vs AC 10 — Hit") via a shared `describeEvent`
+(`src/lib/events/describe.ts`) that replaced the two components' duplicated narration-only
+fallback. Caught a real bug live before shipping: `events.actor` is a foreign key to
+`public.users` (the proposing *person*), not a character — the first version of
+`proposeAttackEvent` set `actor: attackerId` and every insert failed
+`events_actor_fkey`; fixed to `actor: null` like every other propose\*Event, since attackerId
+already lives in the payload where it belongs.
+
+**Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
+not full legality — nothing yet checks a spell's components or whether a character has the
+resource it's spending, and a hit still requires a manual follow-up damage event rather than
+applying it automatically), the other 8 event types' UI (`move`, `cast`, etc.), spell slots and
+inventory on the character sheet, the three surfaces' real designs beyond the `/table` visual
+pass (DM console/player app are still single-purpose proof pages, not the panel layouts in
+Notion's `DM Console Panels` / player UI spec), anything AI.
 
 ### Next, in order
 
@@ -238,6 +259,15 @@ console/player app are still single-purpose proof pages, not the panel layouts i
    test with a wrong-campaign target and a nonexistent target, both asserted to fail; the same
    test run live against the real project; and a real damage/heal round-trip through the actual
    `/dm` UI afterward, confirming the trigger doesn't reject legitimate events.
+9. ~~Server-side dice + the `attack` event type.~~ Done — the first of the four constraints in
+   "The one rule that matters" with zero prior implementation. Verified live through the actual
+   `/dm` UI: a normal attack (roll 2, AC 10 → Miss), then an advantage attack (+15 modifier,
+   `rawRolls: [19, 5]`, kept 19 → Hit) — confirmed by reading the committed payload back from the
+   real project, seed and all. Found and fixed a real bug in the process: the first version set
+   `actor` to the attacking character's id and every insert failed `events_actor_fkey` (`actor`
+   references `public.users`, not `characters`) — caught by actually submitting the form live,
+   not by build or lint. Also verified live (not just in CI) that the widened target-validation
+   trigger rejects an attack naming a nonexistent character.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

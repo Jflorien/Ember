@@ -89,6 +89,9 @@ const attackPayloadSchema = z.object({
   attackerId: z.string(),
   targetId: z.string(),
   roll: z.number().int().min(1).max(20),
+  /** Both dice for advantage/disadvantage, or just [roll] for a normal check — see src/lib/dice.ts. */
+  rawRolls: z.array(z.number().int().min(1).max(20)).min(1).max(2),
+  seed: z.number().int(),
   modifier: z.number().int(),
   total: z.number().int(),
   targetAc: z.number().int(),

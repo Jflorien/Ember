@@ -9,6 +9,7 @@ import {
   conditionNameSchema,
   type ProposedGameEvent,
 } from "@/lib/events";
+import { rollDice } from "@/lib/dice";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventActionState = {
@@ -437,6 +438,87 @@ export async function proposeNarrationEvent(
   }
 
   const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for an attack roll. This is the first event
+ * type wired to CLAUDE.md's "Dice are rolled server-side. Seeded, logged,
+ * auditable." constraint — the client sends attacker/target/modifier/
+ * advantage, never a die result; rollDice (src/lib/dice.ts) draws from a
+ * crypto-seeded PRNG here, and the seed + every raw roll are committed as
+ * part of the event payload, so the outcome can't be spoofed by a
+ * compromised or buggy client and can always be re-derived from the log.
+ * Target AC is read from the target's own character sheet, never trusted
+ * from the form. `actor` stays null like every other propose*Event —
+ * events.actor references public.users (the proposing person), not a
+ * character; attackerId already lives in the payload where it belongs.
+ */
+export async function proposeAttackEvent(
+  sessionId: string,
+  attackerId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const modifier = Number(formData.get("modifier"));
+  const advantageRaw = String(formData.get("advantage") ?? "normal");
+  const advantage =
+    advantageRaw === "advantage" || advantageRaw === "disadvantage" ? advantageRaw : "normal";
+
+  if (!Number.isInteger(modifier)) {
+    return { error: "Attack modifier must be a whole number." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: targetCharacter, error: targetError } = await supabase
+    .from("characters")
+    .select("sheet")
+    .eq("id", targetId)
+    .maybeSingle();
+
+  if (targetError || !targetCharacter) {
+    return { error: "Couldn't find the target's armor class." };
+  }
+
+  const targetSheet = targetCharacter.sheet as { ac?: number } | null;
+  const targetAc = targetSheet?.ac ?? 10;
+
+  const dieCount = advantage === "normal" ? 1 : 2;
+  const { rolls, seed } = rollDice(20, dieCount);
+  const roll = advantage === "disadvantage" ? Math.min(...rolls) : Math.max(...rolls);
+  const total = roll + modifier;
+  const critical = roll === 20;
+  const hit = roll === 1 ? false : critical ? true : total >= targetAc;
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "attack",
+    actor: null,
+    payload: {
+      v: 1,
+      attackerId,
+      targetId,
+      roll,
+      rawRolls: rolls,
+      seed,
+      modifier,
+      total,
+      targetAc,
+      advantage,
+      critical,
+      hit,
+    },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
   return insertEvent(supabase, candidate.data);
 }
 
