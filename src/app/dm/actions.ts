@@ -1,11 +1,33 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { newEventId, proposedGameEventSchema } from "@/lib/events";
+import {
+  newEventId,
+  proposedGameEventSchema,
+  type ProposedGameEvent,
+} from "@/lib/events";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventActionState = {
   error?: string;
 };
+
+async function insertEvent(
+  supabase: SupabaseClient,
+  event: ProposedGameEvent,
+): Promise<{ error?: string }> {
+  const { error } = await supabase.from("events").insert({
+    id: event.id,
+    session_id: event.session_id,
+    type: event.type,
+    actor: event.actor,
+    payload: event.payload,
+    visibility: event.visibility,
+    proposed_by: event.proposed_by,
+  });
+
+  return error ? { error: error.message } : {};
+}
 
 /**
  * Finds the current user's demo campaign/session, creating them if this is
@@ -119,19 +141,128 @@ export async function proposeNarrationEvent(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("events").insert({
-    id: candidate.data.id,
-    session_id: candidate.data.session_id,
-    type: candidate.data.type,
-    actor: candidate.data.actor,
-    payload: candidate.data.payload,
-    visibility: candidate.data.visibility,
-    proposed_by: candidate.data.proposed_by,
-  });
+  return insertEvent(supabase, candidate.data);
+}
 
-  if (error) {
-    return { error: error.message };
+/**
+ * Finds the current user's demo character in the given campaign, creating
+ * one if this is their first visit. Same stand-in role as
+ * getOrCreateDemoSession — real character creation doesn't exist yet.
+ */
+export async function getOrCreateDemoCharacter(
+  campaignId: string,
+): Promise<{ characterId: string; maxHp: number }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in.");
   }
 
-  return {};
+  const DEMO_MAX_HP = 20;
+
+  const { data: existing, error: readError } = await supabase
+    .from("characters")
+    .select("id, sheet")
+    .eq("campaign_id", campaignId)
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (readError) {
+    throw new Error(readError.message);
+  }
+
+  if (existing) {
+    const sheet = existing.sheet as { maxHp?: number } | null;
+    return { characterId: existing.id, maxHp: sheet?.maxHp ?? DEMO_MAX_HP };
+  }
+
+  const { data: created, error: insertError } = await supabase
+    .from("characters")
+    .insert({
+      campaign_id: campaignId,
+      owner_id: user.id,
+      name: "Demo character",
+      sheet: { maxHp: DEMO_MAX_HP },
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !created) {
+    throw new Error(insertError?.message ?? "Could not create character.");
+  }
+
+  return { characterId: created.id, maxHp: DEMO_MAX_HP };
+}
+
+/**
+ * Propose → validate → commit, for damage against a character. Nothing
+ * writes a character's HP directly — HP is only ever a fold over committed
+ * damage/heal events (see CharacterHp), the same way CLAUDE.md warns HP
+ * living in a context window drifts: it doesn't drift if it's never stored,
+ * only computed.
+ */
+export async function proposeDamageEvent(
+  sessionId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const amount = Number(formData.get("amount"));
+  const damageType = String(formData.get("damageType") ?? "");
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { error: "Damage must be a positive whole number." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "damage",
+    actor: null,
+    payload: { v: 1, targetId, amount, damageType, source: null },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+export async function proposeHealEvent(
+  sessionId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const amount = Number(formData.get("amount"));
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { error: "Healing must be a positive whole number." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "heal",
+    actor: null,
+    payload: { v: 1, targetId, amount, source: null },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
 }

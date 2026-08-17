@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getOrCreateDemoSession } from "@/app/dm/actions";
+import { getOrCreateDemoSession, getOrCreateDemoCharacter } from "@/app/dm/actions";
 import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
+import { DamageHealComposer } from "@/components/damage-heal-composer";
+import { CharacterHp } from "@/components/character-hp";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -13,7 +15,8 @@ export default async function DmConsolePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { sessionId } = await getOrCreateDemoSession();
+  const { campaignId, sessionId } = await getOrCreateDemoSession();
+  const { characterId, maxHp } = await getOrCreateDemoCharacter(campaignId);
 
   return (
     <main className="flex min-h-screen flex-col bg-basalt-950">
@@ -43,6 +46,13 @@ export default async function DmConsolePage() {
         </div>
 
         <EventComposer sessionId={sessionId} />
+
+        <div>
+          <div className="runic mb-3">Demo character</div>
+          <CharacterHp sessionId={sessionId} characterId={characterId} maxHp={maxHp} />
+        </div>
+
+        <DamageHealComposer sessionId={sessionId} targetId={characterId} />
 
         <div>
           <div className="runic mb-3">Session log</div>

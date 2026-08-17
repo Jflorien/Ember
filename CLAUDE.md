@@ -153,17 +153,19 @@ Supabase footgun and it is already handled.
 
 **Built:** auth (email + Discord + Google), marketing homepage, login/signup/forgot-password,
 route shells, schema + RLS (live on the `ember` Supabase project, RLS leak-tested both by hand
-and automated in CI), design system applied, the `GameEvent` zod schema (`src/lib/events/`), and
-one full propose → validate → commit → Realtime slice: `/dm` proposes a `narration` event through
-`proposeNarrationEvent` (`src/app/dm/actions.ts`), a `before insert` trigger assigns `seq`
-gap-free per session (`supabase/migrations/0002_event_seq_and_realtime.sql`), and both `/dm` and
-`/table` render it live via `LiveEventFeed` (`src/components/live-event-feed.tsx`) — no polling.
+and automated in CI), design system applied, the `GameEvent` zod schema (`src/lib/events/`), a
+full propose → validate → commit → Realtime slice for `narration`/`damage`/`heal` events
+(`src/app/dm/actions.ts`), a `before insert` trigger that assigns `seq` gap-free per session
+(`supabase/migrations/0002_event_seq_and_realtime.sql`), and a character sheet whose HP is never
+stored — `CharacterHp` (`src/components/character-hp.tsx`) folds every `damage`/`heal` event for
+a character into a current-HP value, live over Realtime, rendered on both `/dm` and `/play`.
 
-**Not built:** campaign/character CRUD (there's a single auto-provisioned "Demo campaign" per
-user, standing in for real campaign creation), the rules engine (validation of a proposed event
-against game state — the schema only validates *shape*, not legality), the other 12 event types'
-UI, the three surfaces' real designs (DM console/player app/table are still single-purpose proof
-pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec), anything AI.
+**Not built:** campaign/character CRUD (there's a single auto-provisioned "Demo campaign" and
+"Demo character" per user, standing in for real creation flows), the rules engine (validation of
+a proposed event against game state — the schema only validates *shape*, not legality), the other
+10 event types' UI (`condition`, `move`, `cast`, `attack`, etc.), the three surfaces' real designs
+(DM console/player app/table are still single-purpose proof pages, not the panel layouts in
+Notion's `DM Console Panels` / player UI spec), anything AI.
 
 ### Next, in order
 
@@ -174,11 +176,15 @@ pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec), 
    websocket authorizes independently of the REST client's session, and subscribing before
    `supabase.realtime.setAuth()` resolves leaves a window where `postgres_changes` silently
    applies RLS as an anonymous connection and delivers nothing — no error. Fixed in
-   `LiveEventFeed`; watch for the same class of bug anywhere else a Realtime channel is opened.
+   `LiveEventFeed`; watch for the same class of bug anywhere else a Realtime channel is opened
+   (`CharacterHp` has the same fix baked in from the start).
 3. ~~Automate the RLS leak test.~~ Done, runs in CI on every push.
-4. **Character sheet**, driven by the event stream — never polling. First real consumer of
-   `damage`/`heal`/`condition` events, not just `narration`.
-5. **Real campaign/character creation**, replacing `getOrCreateDemoSession`.
+4. ~~Character sheet, driven by the event stream.~~ Done for HP specifically — verified live on
+   both `/dm` (deal damage, watch the bar drop) and `/play` (heal via direct insert, watch it rise,
+   no reload). Conditions, spell slots, and inventory are still unbuilt; HP was the one CLAUDE.md
+   calls out by name as the thing that must never live in a context window.
+5. **Real campaign/character creation**, replacing `getOrCreateDemoSession` /
+   `getOrCreateDemoCharacter`.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users
