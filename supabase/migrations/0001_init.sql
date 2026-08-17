@@ -117,6 +117,26 @@ create index memberships_campaign_id_idx on public.memberships (campaign_id);
 alter table public.memberships enable row level security;
 
 -- ---------------------------------------------------------------------------
+-- sessions
+-- ---------------------------------------------------------------------------
+-- Table only, here — RLS and policies are defined further down, after the
+-- helper functions below (is_campaign_member/is_campaign_dm) exist. The
+-- table itself has to exist before this point, though: session_campaign_id()
+-- is a `language sql` function, and Postgres resolves the relations a SQL
+-- function body references at CREATE FUNCTION time, not at call time.
+create table public.sessions (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns (id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'active', 'paused', 'ended')),
+  started_at timestamptz,
+  ended_at timestamptz,
+  current_round integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index sessions_campaign_id_idx on public.sessions (campaign_id);
+
+-- ---------------------------------------------------------------------------
 -- Helper functions (security definer, used inside RLS policies)
 -- ---------------------------------------------------------------------------
 
@@ -261,20 +281,9 @@ create policy "characters_delete_owner_or_dm"
   using (owner_id = auth.uid() or public.is_campaign_dm(campaign_id));
 
 -- ---------------------------------------------------------------------------
--- sessions
+-- sessions policies (table itself is created above, before the helper
+-- functions — see the comment there)
 -- ---------------------------------------------------------------------------
-create table public.sessions (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.campaigns (id) on delete cascade,
-  status text not null default 'pending' check (status in ('pending', 'active', 'paused', 'ended')),
-  started_at timestamptz,
-  ended_at timestamptz,
-  current_round integer not null default 0,
-  created_at timestamptz not null default now()
-);
-
-create index sessions_campaign_id_idx on public.sessions (campaign_id);
-
 alter table public.sessions enable row level security;
 
 create policy "sessions_select_campaign_members"
