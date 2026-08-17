@@ -48,22 +48,44 @@ function generateInviteCode(length = 8): string {
 // ---------------------------------------------------------------------------
 
 export type DmCampaign = { id: string; name: string; inviteCode: string; sessionId: string };
+export type CampaignSummary = { id: string; name: string };
 
-/** The current user's most recently created campaign as DM, or null. */
-export async function getMyDmCampaign(): Promise<DmCampaign | null> {
+/** Every campaign the current user DMs, most recently created first. */
+export async function getMyDmCampaigns(): Promise<CampaignSummary[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in.");
 
-  const { data: campaign, error } = await supabase
+  const { data, error } = await supabase
     .from("campaigns")
-    .select("id, name, invite_code")
+    .select("id, name")
     .eq("owner_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/**
+ * A campaign the current user DMs — the one named by `campaignId` if given
+ * and actually theirs, otherwise their most recently created one. Null if
+ * they own no campaigns, or `campaignId` doesn't name one of theirs.
+ */
+export async function getMyDmCampaign(campaignId?: string): Promise<DmCampaign | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  let query = supabase.from("campaigns").select("id, name, invite_code").eq("owner_id", user.id);
+  query = campaignId
+    ? query.eq("id", campaignId)
+    : query.order("created_at", { ascending: false }).limit(1);
+
+  const { data: campaign, error } = await query.maybeSingle();
 
   if (error) throw new Error(error.message);
   if (!campaign) return null;
@@ -145,46 +167,100 @@ export async function createCampaign(
 
 export type PlayerCampaign = { id: string; name: string; sessionId: string };
 
-/**
- * The campaign the current user should see on /play: prefer a campaign
- * they've joined as a member (the normal player path), fall back to a
- * campaign they own (so a DM can preview the player app for their own
- * game). Returns null if neither exists — the join-or-nothing state.
- */
-export async function getMyPlayerCampaign(): Promise<PlayerCampaign | null> {
+/** Every campaign the current user can see on /play: joined-as-member first, then owned. */
+export async function getMyPlayerCampaigns(): Promise<CampaignSummary[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in.");
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("memberships")
-    .select("campaign_id, campaigns(id, name)")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (membershipError) throw new Error(membershipError.message);
-
-  type CampaignRow = { id: string; name: string };
-  const memberCampaign = membership?.campaigns as unknown as CampaignRow | CampaignRow[] | null;
-  const resolvedMemberCampaign = Array.isArray(memberCampaign)
-    ? memberCampaign[0]
-    : memberCampaign;
-
-  const campaign =
-    resolvedMemberCampaign ??
-    (
-      await supabase
+  const [{ data: memberships, error: membershipError }, { data: owned, error: ownedError }] =
+    await Promise.all([
+      supabase
+        .from("memberships")
+        .select("campaigns(id, name)")
+        .eq("user_id", user.id)
+        .order("joined_at", { ascending: false }),
+      supabase
         .from("campaigns")
         .select("id, name")
         .eq("owner_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    ).data;
+        .order("created_at", { ascending: false }),
+    ]);
+
+  if (membershipError) throw new Error(membershipError.message);
+  if (ownedError) throw new Error(ownedError.message);
+
+  type CampaignRow = { id: string; name: string };
+  const memberCampaigns = (memberships ?? []).flatMap((row) => {
+    const c = row.campaigns as unknown as CampaignRow | CampaignRow[] | null;
+    return c ? (Array.isArray(c) ? c : [c]) : [];
+  });
+
+  const seen = new Set<string>();
+  const combined: CampaignSummary[] = [];
+  for (const c of [...memberCampaigns, ...(owned ?? [])]) {
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+    combined.push(c);
+  }
+  return combined;
+}
+
+/**
+ * A campaign the current user can see on /play — the one named by
+ * `campaignId` if given and visible to them, otherwise preferring a
+ * campaign they've joined as a member over one they own (so a DM can still
+ * preview the player app for their own game as a fallback). Null if
+ * neither applies.
+ */
+export async function getMyPlayerCampaign(campaignId?: string): Promise<PlayerCampaign | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  let campaign: { id: string; name: string } | null = null;
+
+  if (campaignId) {
+    const { data, error } = await supabase
+      .from("campaigns")
+      .select("id, name")
+      .eq("id", campaignId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    campaign = data;
+  } else {
+    const { data: membership, error: membershipError } = await supabase
+      .from("memberships")
+      .select("campaigns(id, name)")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (membershipError) throw new Error(membershipError.message);
+
+    type CampaignRow = { id: string; name: string };
+    const memberCampaign = membership?.campaigns as unknown as CampaignRow | CampaignRow[] | null;
+    const resolvedMemberCampaign = Array.isArray(memberCampaign)
+      ? memberCampaign[0]
+      : memberCampaign;
+
+    campaign =
+      resolvedMemberCampaign ??
+      (
+        await supabase
+          .from("campaigns")
+          .select("id, name")
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      ).data;
+  }
 
   if (!campaign) return null;
 
@@ -245,10 +321,8 @@ export type MyCharacter = { characterId: string; maxHp: number };
 export type PartyMember = { characterId: string; name: string; maxHp: number };
 
 /**
- * Every character in a campaign, for the Party Status Strip and — its
- * first member — as the DM console's damage/heal/condition composer
- * target. There's no character picker yet, so "first member" stands in
- * for "the DM chooses who an event targets."
+ * Every character in a campaign, for the Party Status Strip and as the
+ * option list for the DM console's target picker.
  */
 export async function getPartyMembers(campaignId: string): Promise<PartyMember[]> {
   const supabase = await createClient();

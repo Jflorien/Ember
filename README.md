@@ -92,13 +92,12 @@ event ordering within a session is enforced at the database level.
   attack's target is in range). Only `narration`, `damage`, `heal`, and
   `condition` events have a UI; the other 9 types in
   `src/lib/events/schema.ts` are unused so far.
-- A campaign/character *picker* — creation and joining are real now
-  (`/dm` and `/play` show forms instead of auto-creating), but a user with
-  more than one campaign only ever sees their most recently created one,
-  and the DM console's damage/heal/condition composers always target
-  whichever character was created first in the campaign, not a chosen one.
-  There's also no member-management UI (kick, change role, regenerate an
-  invite code) once someone's joined.
+- Member-management UI (kick, change role, regenerate an invite code) once
+  someone's joined a campaign. A campaign/character picker exists now
+  (`CampaignSwitcher` on `/dm` and `/play`, plus a target `<select>` in the
+  DM console ahead of the damage/heal/condition composers), so a user with
+  multiple campaigns can switch between them and the DM can target any
+  character, not just the first one created.
 - Spell slots and inventory on the character sheet.
 - The AI dungeon master itself.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server

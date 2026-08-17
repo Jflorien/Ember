@@ -1,24 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getMyDmCampaign, getPartyMembers } from "@/app/dm/actions";
+import { getMyDmCampaign, getMyDmCampaigns, getPartyMembers } from "@/app/dm/actions";
 import { CreateCampaignForm } from "@/components/create-campaign-form";
 import { InviteCodeDisplay } from "@/components/invite-code-display";
+import { CampaignSwitcher } from "@/components/campaign-switcher";
 import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
-import { DamageHealComposer } from "@/components/damage-heal-composer";
-import { ConditionComposer } from "@/components/condition-composer";
+import { TargetedComposers } from "@/components/targeted-composers";
 import { PartyStatusStrip } from "@/components/party-status-strip";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
 
-export default async function DmConsolePage() {
+export default async function DmConsolePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ campaign?: string; new?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const campaign = await getMyDmCampaign();
+  const { campaign: campaignIdParam, new: isNew } = await searchParams;
+  const campaigns = await getMyDmCampaigns();
+  const campaign = isNew === "1" ? null : await getMyDmCampaign(campaignIdParam);
 
   return (
     <main className="flex min-h-screen flex-col bg-basalt-950">
@@ -32,6 +38,16 @@ export default async function DmConsolePage() {
       </header>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
+        {campaigns.length > 0 && (
+          <CampaignSwitcher
+            campaigns={campaigns}
+            activeId={campaign?.id ?? ""}
+            basePath="/dm"
+            newHref="/dm?new=1"
+            newLabel="New campaign"
+          />
+        )}
+
         {!campaign ? (
           <CreateCampaignForm />
         ) : (
@@ -52,7 +68,6 @@ async function DmConsoleBody({
   inviteCode: string;
 }) {
   const members = await getPartyMembers(campaignId);
-  const target = members[0];
 
   return (
     <>
@@ -80,21 +95,7 @@ async function DmConsoleBody({
         <PartyStatusStrip sessionId={sessionId} members={members} />
       </div>
 
-      {target ? (
-        <>
-          <p className="font-mono text-sm text-ash-500">
-            Targeting {target.name} — no character picker yet, so composers
-            below always target the first character in the campaign.
-          </p>
-          <DamageHealComposer sessionId={sessionId} targetId={target.characterId} />
-          <ConditionComposer sessionId={sessionId} targetId={target.characterId} />
-        </>
-      ) : (
-        <p className="font-mono text-sm text-ash-500">
-          No characters in this campaign yet — share the invite code above and
-          have a player create one on /play.
-        </p>
-      )}
+      <TargetedComposers sessionId={sessionId} members={members} />
 
       <div>
         <div className="runic mb-3">Session log</div>

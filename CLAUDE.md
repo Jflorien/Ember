@@ -183,14 +183,24 @@ and RLS live there: application code is one bypassable path to this table, not t
 Automated in CI (`supabase/tests/event_target_validation_test.sql`, same disposable-instance
 pattern as the RLS leak test) alongside a live check against the real project.
 
+A campaign/character picker now sits in front of both the DM console and the player app:
+`CampaignSwitcher` (`src/components/campaign-switcher.tsx`) is a server component of plain
+`<Link href="?campaign=<id>">`s — campaign switching is page navigation, not in-page state — shown
+on `/dm` and `/play` whenever the signed-in user has one or more campaigns (`getMyDmCampaigns` /
+`getMyPlayerCampaigns` in `src/app/dm/actions.ts`), with `getMyDmCampaign`/`getMyPlayerCampaign`
+now taking an optional `campaignId` and falling back to most-recently-created when absent, so old
+single-campaign links keep working. `/table` deliberately has no visible switcher — it stays
+chrome-free per spec — but still honours `?campaign=<id>` for deep-linking. Inside a campaign,
+`TargetedComposers` (`src/components/targeted-composers.tsx`) adds a `<select>` of the campaign's
+characters ahead of the damage/heal/condition composers, defaulting to the first character but
+letting the DM pick any of them as `targetId`, replacing the old hardcoded `members[0]`.
+
 **Not built:** the rest of the rules engine (this is one invariant, not full legality — nothing
 yet checks an attack's range, a spell's components, whether a character has the resource it's
 spending), the other 9 event types' UI (`move`, `cast`, `attack`, etc.), spell slots and inventory
-on the character sheet, a campaign/character *picker* (a user with more than one campaign only
-ever sees their most recently created one; the DM console targets its damage/heal/condition
-composers at whichever character was created first, not a chosen one), the three surfaces' real
-designs beyond the `/table` visual pass (DM console/player app are still single-purpose proof
-pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec), anything AI.
+on the character sheet, the three surfaces' real designs beyond the `/table` visual pass (DM
+console/player app are still single-purpose proof pages, not the panel layouts in Notion's
+`DM Console Panels` / player UI spec), anything AI.
 
 ### Next, in order
 
@@ -215,10 +225,14 @@ pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec), 
    the same campaign (two seeded synthetically via SQL, same simulated-user technique, since
    there's still only one real account): correct HP per tile, and a condition applied through the
    DM console's composer showed up as a dot on the right tile, live, on both surfaces.
-7. **Campaign/character picker** — still open, the more pressing gap of the two below. The Party
-   Status Strip and DM console both quietly assume "current campaign" and "current target" are
-   unambiguous, which stops being true the moment a user has more than one campaign or a campaign
-   has more than one untargeted character.
+7. ~~Campaign/character picker.~~ Done. Verified live: created a second real campaign
+   ("The Sunken Vault") through the actual `/dm?new=1` UI, confirmed it renders fully isolated
+   state (its own invite code, empty party, empty log) while the original "Demo campaign" kept
+   its own data untouched across switches; confirmed `/play`'s switcher lists both campaigns for
+   the same account; and confirmed the target picker itself by selecting Kira Stormwind (not the
+   default first character) and dealing 6 damage — her HP dropped 24→18 while Demo character's
+   stayed untouched at 20/20, proving damage/heal/condition events route to the *selected*
+   character, not always the first one.
 8. ~~Rules engine: validate event targets.~~ Done, out of order (picked over the picker on
    request) — the first check beyond zod shape validation. Verified three ways: an automated CI
    test with a wrong-campaign target and a nonexistent target, both asserted to fail; the same

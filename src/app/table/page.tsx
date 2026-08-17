@@ -5,13 +5,21 @@ import { TvEventFeed } from "@/components/tv-event-feed";
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
 
-export default async function TableViewPage() {
+export default async function TableViewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ campaign?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const campaign = user ? await getMyPlayerCampaign() : null;
+  // No visible campaign switcher here on purpose — /table is specified
+  // chrome-free ("no input, no hover, no chrome"). ?campaign=<id> still
+  // works for deep-linking a specific table from outside the page itself.
+  const { campaign: campaignIdParam } = await searchParams;
+  const campaign = user ? await getMyPlayerCampaign(campaignIdParam) : null;
 
   if (!campaign) {
     return (

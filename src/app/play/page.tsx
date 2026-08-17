@@ -1,8 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getMyPlayerCampaign, getMyCharacter, getPartyMembers } from "@/app/dm/actions";
+import {
+  getMyPlayerCampaign,
+  getMyPlayerCampaigns,
+  getMyCharacter,
+  getPartyMembers,
+} from "@/app/dm/actions";
 import { JoinCampaignForm } from "@/components/join-campaign-form";
 import { CreateCharacterForm } from "@/components/create-character-form";
+import { CampaignSwitcher } from "@/components/campaign-switcher";
 import { CharacterHp } from "@/components/character-hp";
 import { CharacterConditions } from "@/components/character-conditions";
 import { PartyStatusStrip } from "@/components/party-status-strip";
@@ -10,13 +16,19 @@ import { PartyStatusStrip } from "@/components/party-status-strip";
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
 
-export default async function PlayerAppPage() {
+export default async function PlayerAppPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ campaign?: string; join?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const campaign = await getMyPlayerCampaign();
+  const { campaign: campaignIdParam, join: isJoining } = await searchParams;
+  const campaigns = await getMyPlayerCampaigns();
+  const campaign = isJoining === "1" ? null : await getMyPlayerCampaign(campaignIdParam);
 
   return (
     <main className="flex min-h-screen flex-col bg-basalt-950">
@@ -30,6 +42,16 @@ export default async function PlayerAppPage() {
       </header>
 
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-6 py-16">
+        {campaigns.length > 0 && (
+          <CampaignSwitcher
+            campaigns={campaigns}
+            activeId={campaign?.id ?? ""}
+            basePath="/play"
+            newHref="/play?join=1"
+            newLabel="Join another"
+          />
+        )}
+
         {!campaign ? (
           <JoinCampaignForm />
         ) : (
