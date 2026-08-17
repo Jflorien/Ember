@@ -215,10 +215,23 @@ fallback. Caught a real bug live before shipping: `events.actor` is a foreign ke
 `events_actor_fkey`; fixed to `actor: null` like every other propose\*Event, since attackerId
 already lives in the payload where it belongs.
 
+The `round` event type tracks combat's round counter, folded live the same way HP and conditions
+are — nothing stores "what round is it," `useSessionRound` (`src/lib/hooks/use-session-round.ts`)
+derives it from the last committed `round` event. `RoundTracker` (`src/components/round-tracker.tsx`,
+`/dm` only) is the single writer: its "Start/End round N" button calls `proposeAdvanceRoundEvent`,
+which recomputes the next number/phase from the *last committed event in the database*, never
+from client state, so a stale tab or two DMs clicking at once can't desync the count — the same
+"don't trust the client" shape as attack's dice. `RoundBadge` (`src/components/round-badge.tsx`)
+is the read-only half, shown on `/table` and `/play`; deliberately un-heated (ash, not gold) per
+the design system's "gold is turn state... nothing else" — a whole-party round count isn't any
+one character's turn. Verified live across all three surfaces at once (two tabs open side by
+side): advancing from the DM console propagated to both `/table` and `/play` over Realtime with
+no refresh, through a full start 1 → end 1 → start 2 cycle.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks a spell's components or whether a character has the
 resource it's spending, and a hit still requires a manual follow-up damage event rather than
-applying it automatically), the other 8 event types' UI (`move`, `cast`, etc.), spell slots and
+applying it automatically), the other 7 event types' UI (`move`, `cast`, etc.), spell slots and
 inventory on the character sheet, the three surfaces' real designs beyond the `/table` visual
 pass (DM console/player app are still single-purpose proof pages, not the panel layouts in
 Notion's `DM Console Panels` / player UI spec), anything AI.
@@ -268,6 +281,11 @@ Notion's `DM Console Panels` / player UI spec), anything AI.
    references `public.users`, not `characters`) — caught by actually submitting the form live,
    not by build or lint. Also verified live (not just in CI) that the widened target-validation
    trigger rejects an attack naming a nonexistent character.
+10. ~~Round tracker.~~ Done — the `round` event type, folded the same way HP/conditions are
+    rather than stored. Verified live with three tabs open at once (`/dm`, `/table`, `/play`, all
+    on the same real campaign): clicking through a full start 1 → end 1 → start 2 cycle in the DM
+    console propagated to both read-only surfaces over Realtime with no refresh, matching the
+    exact number and phase at every step.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

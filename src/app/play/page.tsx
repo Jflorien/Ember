@@ -12,6 +12,7 @@ import { CampaignSwitcher } from "@/components/campaign-switcher";
 import { CharacterHp } from "@/components/character-hp";
 import { CharacterConditions } from "@/components/character-conditions";
 import { PartyStatusStrip } from "@/components/party-status-strip";
+import { RoundBadge } from "@/components/round-badge";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -91,6 +92,8 @@ async function PlayerSheetBody({
           committed for this character, live over Realtime.
         </p>
       </div>
+
+      <RoundBadge sessionId={sessionId} />
 
       <div className="plate flex flex-col gap-4 p-6">
         <CharacterHp

@@ -640,3 +640,48 @@ export async function proposeConditionEvent(
   const supabase = await createClient();
   return insertEvent(supabase, candidate.data);
 }
+
+/**
+ * Propose → validate → commit, for advancing the round counter. Alternates
+ * start/end off the *last committed* round event, queried fresh here —
+ * never off whatever a client thinks the round is — so two DMs clicking at
+ * once (or one stale tab) can't desync the count: start 1 -> end 1 ->
+ * start 2 -> ... No round event yet means this session's first round.
+ */
+export async function proposeAdvanceRoundEvent(sessionId: string): Promise<EventActionState> {
+  const supabase = await createClient();
+
+  const { data: lastRound, error: lastRoundError } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("session_id", sessionId)
+    .eq("type", "round")
+    .order("seq", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastRoundError) {
+    return { error: lastRoundError.message };
+  }
+
+  const last = lastRound?.payload as { number?: number; phase?: string } | null;
+  const wasMidRound = last?.phase === "start";
+  const number = wasMidRound ? (last?.number ?? 1) : (last?.number ?? 0) + 1;
+  const phase = wasMidRound ? "end" : "start";
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "round",
+    actor: null,
+    payload: { v: 1, number, phase },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  return insertEvent(supabase, candidate.data);
+}

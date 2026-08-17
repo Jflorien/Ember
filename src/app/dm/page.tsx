@@ -8,6 +8,7 @@ import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
 import { TargetedComposers } from "@/components/targeted-composers";
 import { PartyStatusStrip } from "@/components/party-status-strip";
+import { RoundTracker } from "@/components/round-tracker";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -87,6 +88,8 @@ async function DmConsoleBody({
       </div>
 
       <InviteCodeDisplay inviteCode={inviteCode} />
+
+      <RoundTracker sessionId={sessionId} />
 
       <EventComposer sessionId={sessionId} />
 
