@@ -1,0 +1,111 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        basalt: {
+          990: "var(--basalt-990)",
+          950: "var(--basalt-950)",
+          900: "var(--basalt-900)",
+          850: "var(--basalt-850)",
+          800: "var(--basalt-800)",
+          750: "var(--basalt-750)",
+          700: "var(--basalt-700)",
+          600: "var(--basalt-600)",
+          500: "var(--basalt-500)",
+        },
+        ash: {
+          500: "var(--ash-500)",
+          400: "var(--ash-400)",
+          300: "var(--ash-300)",
+          200: "var(--ash-200)",
+          100: "var(--ash-100)",
+          50: "var(--ash-050)",
+        },
+        molten: {
+          950: "var(--molten-950)",
+          900: "var(--molten-900)",
+          800: "var(--molten-800)",
+          700: "var(--molten-700)",
+          600: "var(--molten-600)",
+          500: "var(--molten-500)",
+          400: "var(--molten-400)",
+          300: "var(--molten-300)",
+          200: "var(--molten-200)",
+        },
+        forge: {
+          600: "var(--forge-600)",
+          500: "var(--forge-500)",
+          400: "var(--forge-400)",
+          300: "var(--forge-300)",
+        },
+        whitehot: "var(--whitehot)",
+        iron: {
+          700: "var(--iron-700)",
+          600: "var(--iron-600)",
+          500: "var(--iron-500)",
+          400: "var(--iron-400)",
+        },
+        vital: "var(--vital)",
+        frost: "var(--frost)",
+        verdant: "var(--verdant)",
+        venom: "var(--venom)",
+        shadow: "var(--shadow)",
+        danger: "var(--danger)",
+        arcane: "var(--arcane)",
+        dt: {
+          acid: "var(--dt-acid)",
+          bludgeoning: "var(--dt-bludgeoning)",
+          cold: "var(--dt-cold)",
+          fire: "var(--dt-fire)",
+          force: "var(--dt-force)",
+          lightning: "var(--dt-lightning)",
+          necrotic: "var(--dt-necrotic)",
+          piercing: "var(--dt-piercing)",
+          poison: "var(--dt-poison)",
+          psychic: "var(--dt-psychic)",
+          radiant: "var(--dt-radiant)",
+          slashing: "var(--dt-slashing)",
+          thunder: "var(--dt-thunder)",
+        },
+        r: {
+          common: "var(--r-common)",
+          uncommon: "var(--r-uncommon)",
+          rare: "var(--r-rare)",
+          veryrare: "var(--r-veryrare)",
+          legendary: "var(--r-legendary)",
+          artifact: "var(--r-artifact)",
+        },
+      },
+      fontFamily: {
+        display: ["var(--f-display)"],
+        ui: ["var(--f-ui)"],
+        sans: ["var(--f-ui)"],
+        mono: ["var(--f-mono)"],
+      },
+      letterSpacing: {
+        eyebrow: "0.15em",
+        runic: "0.18em",
+      },
+      boxShadow: {
+        "glow-sm": "var(--glow-sm)",
+        "glow-md": "var(--glow-md)",
+        lift: "var(--lift)",
+      },
+      transitionTimingFunction: {
+        fast: "cubic-bezier(.2,0,.15,1)",
+        slow: "cubic-bezier(.16,1,.3,1)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

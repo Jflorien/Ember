@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember — Design System v1.0</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   EMBER DESIGN SYSTEM — TOKENS
+   Direction: forge-light in a cold hall. Basalt and iron, lit by molten heat.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+  /* ── Basalt: cold carved stone. The world when nothing is happening. ── */
+  --basalt-990:#06070a;  --basalt-950:#090b10;  --basalt-900:#0d0f15;
+  --basalt-850:#12141c;  --basalt-800:#171a23;  --basalt-750:#1c202b;
+  --basalt-700:#232833;  --basalt-600:#2d3340;  --basalt-500:#3a4152;
+
+  /* ── Ash: everything written on the stone. ── */
+  --ash-500:#565d70;  --ash-400:#6d7588;  --ash-300:#8d96ab;
+  --ash-200:#b4bccd;  --ash-100:#dfe4ee;  --ash-050:#f2f5fa;
+
+  /* ── Molten: the heat ramp. Signature of the system. ── */
+  --molten-950:#2a0c04; --molten-900:#4a1405; --molten-800:#7a2408;
+  --molten-700:#a8380c; --molten-600:#d14e11; --molten-500:#f26419;
+  --molten-400:#ff8534; --molten-300:#ffa763; --molten-200:#ffc999;
+
+  /* ── Forge: gold-hot. Highlight, legendary, the wordmark. ── */
+  --forge-600:#d99000; --forge-500:#ffb627; --forge-400:#ffd166;
+  --forge-300:#ffe3a3; --whitehot:#fff4dc;
+
+  /* ── Iron: metals for structure and rank. ── */
+  --iron-700:#39404f; --iron-600:#4a5164; --iron-500:#646d84; --iron-400:#98a2b8;
+
+  /* ── Semantic ── */
+  --vital:#f26419; --frost:#5ec8e8; --verdant:#5fbf7f;
+  --venom:#7fb03a; --shadow:#8b6bc4; --danger:#e5484d; --arcane:#b98cf0;
+
+  /* ── Damage types (13) ── */
+  --dt-acid:#a3c93a;    --dt-bludgeoning:#98a2b8; --dt-cold:#5ec8e8;
+  --dt-fire:#f26419;    --dt-force:#b98cf0;       --dt-lightning:#7ea6ff;
+  --dt-necrotic:#6f5a9e;--dt-piercing:#b4bccd;    --dt-poison:#7fb03a;
+  --dt-psychic:#e06bb0; --dt-radiant:#ffd166;     --dt-slashing:#d0d6e2;
+  --dt-thunder:#86e0d8;
+
+  /* ── Rarity ── */
+  --r-common:#8d96ab; --r-uncommon:#5fbf7f; --r-rare:#5aa9e6;
+  --r-veryrare:#b98cf0; --r-legendary:#ffb627; --r-artifact:#f26419;
+
+  /* ── Type ── */
+  --f-display:"Cinzel","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --f-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* ── Form ── */
+  --chamfer:12px;
+  --edge:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.02) 34%,rgba(0,0,0,.4));
+  --edge-hot:linear-gradient(160deg,rgba(255,182,39,.55),rgba(242,100,25,.16) 40%,rgba(0,0,0,.4));
+  --glow-sm:0 0 0 1px rgba(242,100,25,.22), 0 0 14px -2px rgba(242,100,25,.4);
+  --glow-md:0 0 0 1px rgba(242,100,25,.3), 0 0 30px -4px rgba(242,100,25,.55);
+  --lift:0 10px 30px -12px rgba(0,0,0,.85);
+
+  /* ── Motion ── */
+  --t-fast:110ms cubic-bezier(.2,0,.15,1);
+  --t-base:220ms cubic-bezier(.2,0,.15,1);
+  --t-slow:520ms cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+}
+
+/* ═══════════════ BASE ═══════════════ */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--basalt-950);color:var(--ash-100);font-family:var(--f-ui);
+  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(1100px 500px at 78% -8%, rgba(242,100,25,.10), transparent 62%),
+    radial-gradient(800px 400px at 8% 4%, rgba(94,200,232,.045), transparent 60%);
+  background-attachment:fixed}
+.wrap{max-width:1200px;margin:0 auto;padding:0 30px}
+
+/* chamfered plate — the core surface primitive */
+.plate{position:relative;background:var(--basalt-800);
+  clip-path:polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer))}
+.plate::before{content:'';position:absolute;inset:0;padding:1px;background:var(--edge);
+  clip-path:inherit;pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude}
+.plate.hot::before{background:var(--edge-hot)}
+.plate.sm{--chamfer:8px}
+.plate.xs{--chamfer:6px}
+
+/* runic label — the inscription style. Used for every eyebrow and metadata label. */
+.runic{font-family:var(--f-mono);font-size:10.5px;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ash-500)}
+.runic.hot{color:var(--forge-500)}
+
+h1,h2,h3,h4{margin:0}
+.display{font-family:var(--f-display);font-weight:700;letter-spacing:.015em}
+
+/* ═══════════════ PAGE CHROME ═══════════════ */
+header{border-bottom:1px solid var(--basalt-700);position:relative;overflow:hidden}
+header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--molten-500),var(--forge-500),transparent)}
+.hin{max-width:1200px;margin:0 auto;padding:64px 30px 52px}
+.mark{font-family:var(--f-display);font-size:15px;font-weight:700;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--forge-500);margin-bottom:22px}
+h1.title{font-family:var(--f-display);font-size:52px;line-height:1.04;font-weight:700;
+  letter-spacing:.005em;margin-bottom:16px;
+  background:linear-gradient(174deg,var(--ash-050) 26%,var(--forge-300) 68%,var(--molten-400));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.tagline{font-size:18px;color:var(--ash-300);max-width:660px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
+.meta span{font-family:var(--f-mono);font-size:11px;color:var(--ash-400);
+  border:1px solid var(--basalt-600);padding:5px 11px;background:rgba(255,255,255,.02)}
+
+nav{position:sticky;top:0;z-index:80;background:rgba(9,11,16,.94);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--basalt-700)}
+.nin{max-width:1200px;margin:0 auto;padding:0 30px;display:flex;gap:0;overflow-x:auto}
+.nin::-webkit-scrollbar{display:none}
+nav a{color:var(--ash-500);text-decoration:none;font-family:var(--f-mono);font-size:11px;
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:14px 14px;
+  white-space:nowrap;border-bottom:2px solid transparent;transition:var(--t-fast)}
+nav a:hover{color:var(--forge-500);border-bottom-color:var(--molten-600)}
+
+section{padding:64px 0 12px;border-bottom:1px solid var(--basalt-800)}
+.shead{margin-bottom:34px}
+.shead .n{font-family:var(--f-mono);font-size:11px;color:var(--molten-500);letter-spacing:.2em;
+  font-weight:700;display:block;margin-bottom:9px}
+.shead h2{font-family:var(--f-display);font-size:30px;font-weight:700;letter-spacing:.005em;
+  margin-bottom:11px;color:var(--ash-050)}
+.shead p{color:var(--ash-300);max-width:820px;margin:0;font-size:15px}
+h3.sub{font-family:var(--f-mono);font-size:11px;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--forge-500);font-weight:700;margin:44px 0 16px;
+  padding-bottom:9px;border-bottom:1px solid var(--basalt-700)}
+p{margin:0 0 14px}
+.note{color:var(--ash-400);font-size:13.5px;max-width:820px}
+.note b{color:var(--ash-200);font-weight:600}
+code{font-family:var(--f-mono);font-size:12px;background:var(--basalt-900);padding:2px 6px;
+  border:1px solid var(--basalt-700);color:var(--forge-400)}
+
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:980px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* ═══════════════ COLOUR ═══════════════ */
+.ramp{display:grid;grid-template-columns:repeat(9,1fr);gap:0;margin-bottom:8px}
+.ramp div{height:66px;position:relative;display:flex;align-items:flex-end;padding:7px}
+.ramp span{font-family:var(--f-mono);font-size:9px;letter-spacing:.05em;opacity:.82}
+.rlabel{display:flex;justify-content:space-between;margin-bottom:9px;align-items:baseline}
+.rlabel b{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ash-200);font-weight:600}
+.rlabel i{font-style:normal;font-size:12.5px;color:var(--ash-500)}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.sw{padding:11px 12px;border:1px solid var(--basalt-700);background:var(--basalt-850)}
+.sw .chip{height:30px;margin-bottom:9px;border:1px solid rgba(255,255,255,.09)}
+.sw .nm{font-family:var(--f-mono);font-size:10.5px;color:var(--ash-200);display:block}
+.sw .hx{font-family:var(--f-mono);font-size:9.5px;color:var(--ash-500)}
+
+/* ═══════════════ COMPONENTS ═══════════════ */
+.demo{background:
+    linear-gradient(rgba(6,7,10,.55),rgba(6,7,10,.55)),
+    repeating-linear-gradient(45deg,var(--basalt-900) 0 11px,var(--basalt-850) 11px 22px);
+  border:1px solid var(--basalt-700);padding:28px;display:flex;flex-wrap:wrap;gap:16px;
+  align-items:flex-start;margin-bottom:12px}
+.demo.col{flex-direction:column;align-items:stretch}
+.demo.center{align-items:center}
+.cap{font-family:var(--f-mono);font-size:10.5px;color:var(--ash-500);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:9px}
+
+/* buttons */
+.btn{position:relative;font-family:var(--f-ui);font-size:13px;font-weight:650;letter-spacing:.02em;
+  padding:10px 20px;border:0;cursor:pointer;color:var(--ash-100);background:var(--basalt-700);
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+  transition:var(--t-fast)}
+.btn:hover{background:var(--basalt-600);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-forge{background:linear-gradient(178deg,var(--forge-500),var(--molten-600));color:#2a1402;
+  box-shadow:var(--glow-sm)}
+.btn-forge:hover{background:linear-gradient(178deg,var(--forge-400),var(--molten-500));
+  box-shadow:var(--glow-md)}
+.btn-iron{background:transparent;box-shadow:inset 0 0 0 1px var(--iron-600);color:var(--ash-200)}
+.btn-iron:hover{box-shadow:inset 0 0 0 1px var(--forge-600);color:var(--forge-400);background:rgba(255,182,39,.06)}
+.btn-ghost{background:transparent;color:var(--ash-400)}
+.btn-ghost:hover{color:var(--ash-050);background:rgba(255,255,255,.05)}
+.btn-danger{background:transparent;box-shadow:inset 0 0 0 1px rgba(229,72,77,.5);color:#ff8f92}
+.btn-danger:hover{background:rgba(229,72,77,.14)}
+.btn:disabled{opacity:.34;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.sm{font-size:11.5px;padding:7px 14px;
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+
+/* HP bar — the heat metaphor made literal */
+.hp{width:100%}
+.hp .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.hp .lbl{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--ash-500);
+  text-transform:uppercase}
+.hp .val{font-family:var(--f-mono);font-size:14px;font-weight:700;color:var(--ash-100);
+  font-variant-numeric:tabular-nums}
+.hp .val i{font-style:normal;color:var(--ash-500);font-size:11px}
+.track{height:11px;background:var(--basalt-990);position:relative;overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--basalt-600), inset 0 2px 5px rgba(0,0,0,.75)}
+.fill{height:100%;position:relative;transition:width var(--t-slow);
+  background:linear-gradient(90deg,var(--molten-700),var(--molten-500) 55%,var(--forge-500));
+  box-shadow:0 0 12px rgba(242,100,25,.5)}
+.fill::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 52%)}
+.fill.warm{background:linear-gradient(90deg,var(--molten-800),var(--molten-600));
+  box-shadow:0 0 9px rgba(209,78,17,.42)}
+.fill.cold{background:linear-gradient(90deg,#3a1a12,#7a2408);box-shadow:none}
+.temp{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,
+  rgba(94,200,232,.75) 0 4px,rgba(94,200,232,.42) 4px 8px);box-shadow:0 0 9px rgba(94,200,232,.5)}
+
+/* ability scores */
+.abils{display:flex;gap:9px;flex-wrap:wrap}
+.abil{width:74px;text-align:center;padding:10px 4px 8px;background:var(--basalt-850);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  box-shadow:inset 0 0 0 1px var(--basalt-600);transition:var(--t-fast)}
+.abil:hover{box-shadow:inset 0 0 0 1px var(--forge-600);background:var(--basalt-800)}
+.abil .k{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;color:var(--ash-500)}
+.abil .m{font-family:var(--f-mono);font-size:21px;font-weight:700;color:var(--forge-400);
+  line-height:1.25;font-variant-numeric:tabular-nums}
+.abil .s{font-family:var(--f-mono);font-size:10px;color:var(--ash-500)}
+
+/* vital chips */
+.vitals{display:flex;gap:9px;flex-wrap:wrap}
+.vital{display:flex;align-items:center;gap:9px;padding:8px 14px;background:var(--basalt-850);
+  box-shadow:inset 0 0 0 1px var(--basalt-600);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.vital .k{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.13em;color:var(--ash-500)}
+.vital .v{font-family:var(--f-mono);font-size:17px;font-weight:700;color:var(--ash-050);
+  font-variant-numeric:tabular-nums;line-height:1}
+
+/* slot pips — spent slots cool to ash */
+.slots{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.slotgrp{display:flex;align-items:center;gap:7px}
+.slotgrp .lv{font-family:var(--f-mono);font-size:10px;color:var(--ash-500);letter-spacing:.1em}
+.pip{width:15px;height:15px;cursor:pointer;background:var(--forge-500);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  box-shadow:0 0 9px rgba(255,182,39,.6);transition:var(--t-base)}
+.pip:hover{transform:scale(1.16)}
+.pip.spent{background:var(--basalt-600);box-shadow:none}
+
+/* condition pips */
+.conds{display:flex;gap:8px;flex-wrap:wrap}
+.cond{display:flex;align-items:center;gap:7px;padding:6px 11px 6px 8px;font-size:12px;
+  font-weight:600;background:var(--basalt-850);box-shadow:inset 0 0 0 1px var(--basalt-600);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.cond .dot{width:8px;height:8px;border-radius:50%}
+.cond .dur{font-family:var(--f-mono);font-size:10px;color:var(--ash-500)}
+.cond.buff{box-shadow:inset 0 0 0 1px rgba(95,191,127,.4);color:#9ee0b4}
+.cond.buff .dot{background:var(--verdant);box-shadow:0 0 8px var(--verdant)}
+.cond.debuff{box-shadow:inset 0 0 0 1px rgba(139,107,196,.42);color:#c3adea}
+.cond.debuff .dot{background:var(--shadow);box-shadow:0 0 8px var(--shadow)}
+.cond.conc{box-shadow:inset 0 0 0 1px rgba(255,182,39,.42);color:var(--forge-300)}
+.cond.conc .dot{background:var(--forge-500);box-shadow:0 0 8px var(--forge-500);
+  animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* action tile */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px;width:100%}
+.tile{padding:12px 13px;background:var(--basalt-850);cursor:pointer;text-align:left;border:0;
+  box-shadow:inset 0 0 0 1px var(--basalt-600);transition:var(--t-fast);
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}
+.tile:hover{box-shadow:inset 0 0 0 1px var(--molten-600),var(--glow-sm);
+  background:var(--basalt-800);transform:translateY(-2px)}
+.tile .r1{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.tile .ic{width:26px;height:26px;display:grid;place-items:center;font-size:14px;
+  background:var(--basalt-900);box-shadow:inset 0 0 0 1px var(--basalt-600);flex:0 0 auto}
+.tile .nm{font-size:13px;font-weight:650;color:var(--ash-100);line-height:1.2}
+.tile .mt{font-family:var(--f-mono);font-size:10px;color:var(--ash-500);
+  display:flex;gap:7px;flex-wrap:wrap}
+.atype{font-family:var(--f-mono);font-size:8.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;padding:2px 6px;color:var(--basalt-950)}
+.atype.action{background:var(--forge-500)} .atype.bonus{background:var(--frost)}
+.atype.reaction{background:var(--arcane)} .atype.free{background:var(--ash-400)}
+
+/* damage-type badges */
+.dts{display:flex;flex-wrap:wrap;gap:7px}
+.dt{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;padding:4px 9px;background:var(--basalt-850);
+  display:flex;align-items:center;gap:7px}
+.dt .b{width:8px;height:8px;transform:rotate(45deg)}
+
+/* rarity */
+.rar{display:flex;align-items:center;gap:11px;padding:10px 13px;background:var(--basalt-850);
+  box-shadow:inset 0 0 0 1px var(--basalt-600);margin-bottom:7px;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.rar .swatch{width:3px;height:30px;flex:0 0 auto}
+.rar .nm{font-size:13px;font-weight:600;flex:1}
+.rar .q{font-family:var(--f-mono);font-size:11px;color:var(--ash-500)}
+
+/* log */
+.log{width:100%;background:var(--basalt-900);box-shadow:inset 0 0 0 1px var(--basalt-700);
+  padding:11px;max-height:270px;overflow-y:auto}
+.le{display:grid;grid-template-columns:20px 52px 1fr;gap:10px;padding:7px 6px;
+  font-size:12.5px;align-items:baseline;border-left:2px solid transparent}
+.le:hover{background:rgba(255,255,255,.028)}
+.le .i{font-size:12px;text-align:center}
+.le .t{font-family:var(--f-mono);font-size:10px;color:var(--ash-500)}
+.le .x{color:var(--ash-200)}
+.le .x b{color:var(--ash-050);font-weight:650}
+.le.dmg{border-left-color:var(--molten-500)}
+.le.heal{border-left-color:var(--verdant)}
+.le.cast{border-left-color:var(--arcane)}
+.le.sys{border-left-color:var(--iron-600)}
+.le.crit{border-left-color:var(--forge-500);background:rgba(255,182,39,.06)}
+
+/* initiative */
+.init{display:flex;flex-direction:column;gap:5px;width:100%}
+.ir{display:flex;align-items:center;gap:11px;padding:9px 13px;background:var(--basalt-850);
+  box-shadow:inset 0 0 0 1px var(--basalt-600);transition:var(--t-base);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.ir.active{box-shadow:inset 0 0 0 1px var(--forge-600),var(--glow-sm);
+  background:linear-gradient(90deg,rgba(255,182,39,.12),transparent 42%)}
+.ir .roll{font-family:var(--f-mono);font-size:15px;font-weight:700;color:var(--forge-400);
+  width:26px;text-align:right;font-variant-numeric:tabular-nums}
+.ir .nm{font-size:13px;font-weight:600;flex:1}
+.ir .nm em{font-style:normal;color:var(--ash-500);font-size:11px;font-family:var(--f-mono)}
+.ir .side{font-family:var(--f-mono);font-size:9px;letter-spacing:.11em;padding:2px 7px;
+  text-transform:uppercase;font-weight:700}
+.ir .side.pc{background:rgba(94,200,232,.16);color:var(--frost)}
+.ir .side.npc{background:rgba(229,72,77,.16);color:#ff8f92}
+
+/* dice */
+.die{width:78px;height:78px;display:grid;place-items:center;cursor:pointer;
+  background:linear-gradient(160deg,var(--basalt-700),var(--basalt-850));
+  clip-path:polygon(50% 0,100% 26%,100% 74%,50% 100%,0 74%,0 26%);
+  box-shadow:inset 0 0 0 1px var(--iron-600);transition:var(--t-base);position:relative}
+.die:hover{box-shadow:inset 0 0 0 1px var(--forge-600);transform:translateY(-2px)}
+.die.rolling{animation:spin .55s cubic-bezier(.3,0,.2,1)}
+@keyframes spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(190deg) scale(1.14)}
+  100%{transform:rotate(360deg) scale(1)}}
+.die .n{font-family:var(--f-mono);font-size:29px;font-weight:700;color:var(--ash-050);
+  font-variant-numeric:tabular-nums}
+.die.nat20{box-shadow:inset 0 0 0 1px var(--forge-500),var(--glow-md)}
+.die.nat20 .n{color:var(--forge-400)}
+.die.nat1{box-shadow:inset 0 0 0 1px var(--danger)}
+.die.nat1 .n{color:#ff8f92}
+
+/* paper doll */
+.doll{display:grid;grid-template-columns:repeat(3,58px);gap:7px}
+.slot{height:58px;display:grid;place-items:center;color:var(--ash-300);background:var(--basalt-850);cursor:pointer;
+  box-shadow:inset 0 0 0 1px var(--basalt-600);font-size:19px;transition:var(--t-fast);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.slot:hover{box-shadow:inset 0 0 0 1px var(--forge-600)}
+.slot.empty{color:var(--basalt-500);font-size:10px;font-family:var(--f-mono);letter-spacing:.08em}
+.slot.filled{box-shadow:inset 0 0 0 1px var(--iron-600);background:var(--basalt-750)}
+.slot.legendary{box-shadow:inset 0 0 0 1px var(--forge-600),0 0 16px -4px rgba(255,182,39,.55)}
+
+/* inputs */
+.field{width:100%;max-width:330px}
+.field label{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ash-500);margin-bottom:7px}
+.field input{width:100%;background:var(--basalt-900);border:0;padding:11px 13px;
+  color:var(--ash-100);font-family:var(--f-ui);font-size:14px;
+  box-shadow:inset 0 0 0 1px var(--basalt-600);transition:var(--t-fast);
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.field input:focus{outline:0;box-shadow:inset 0 0 0 1px var(--forge-500),var(--glow-sm)}
+.field input::placeholder{color:var(--ash-500)}
+
+/* tabs */
+.tabs{display:flex;gap:2px;background:var(--basalt-900);padding:4px;
+  box-shadow:inset 0 0 0 1px var(--basalt-700)}
+.tabs button{flex:1;background:none;border:0;color:var(--ash-400);font-family:var(--f-mono);
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:8px 12px;
+  cursor:pointer;transition:var(--t-fast)}
+.tabs button:hover{color:var(--ash-100)}
+.tabs button.on{background:var(--basalt-750);color:var(--forge-400);
+  box-shadow:inset 0 0 0 1px var(--basalt-600)}
+
+/* quest */
+.quest{padding:15px 17px;background:var(--basalt-850);width:100%;
+  box-shadow:inset 0 0 0 1px var(--basalt-600);border-left:2px solid var(--forge-600);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+.quest h4{font-size:14.5px;font-weight:650;margin-bottom:5px;color:var(--ash-050)}
+.quest p{font-size:12.5px;color:var(--ash-400);margin:0 0 10px}
+.quest .obj{font-family:var(--f-mono);font-size:11.5px;color:var(--forge-400);
+  display:flex;align-items:center;gap:8px}
+
+/* do / dont */
+.dd{padding:17px 19px;background:var(--basalt-850);box-shadow:inset 0 0 0 1px var(--basalt-600);
+  border-top:2px solid var(--verdant)}
+.dd.no{border-top-color:var(--danger)}
+.dd .h{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:700;color:var(--verdant);margin-bottom:9px}
+.dd.no .h{color:#ff8f92}
+.dd ul{margin:0;padding-left:17px;color:var(--ash-300);font-size:13px}
+.dd li{margin-bottom:6px}
+
+/* icons — inline SVG, stroke-based, inherit colour */
+.ico{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.ico.lg{width:21px;height:21px}
+.tile .ic{color:var(--ash-300)}
+.tile:hover .ic{color:var(--forge-400)}
+
+pre{background:var(--basalt-990);border:1px solid var(--basalt-700);padding:17px 19px;
+  overflow-x:auto;font-family:var(--f-mono);font-size:12px;line-height:1.7;color:var(--ash-200);
+  margin:0 0 14px}
+pre .c{color:var(--ash-500)} pre .v{color:var(--forge-400)} pre .p{color:var(--arcane)}
+
+footer{padding:44px 0 70px;color:var(--ash-500);font-size:12.5px}
+footer b{color:var(--ash-300)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hin">
+    <div class="mark">Ember</div>
+    <h1 class="title">Forge-light<br>in a cold hall.</h1>
+    <p class="tagline">A design system for a tabletop where the rules are stone and the action is
+      molten. Basalt, iron and ash hold the structure. Heat is reserved for what is alive.</p>
+    <div class="meta">
+      <span>v1.0</span><span>dark only</span><span>3 surfaces</span>
+      <span>WCAG AA body text</span><span>sourced from Side Project</span>
+    </div>
+  </div>
+</header>
+
+<nav><div class="nin">
+  <a href="#idea">The idea</a><a href="#colour">Colour</a><a href="#type">Type</a>
+  <a href="#form">Form</a><a href="#motion">Motion</a><a href="#char">Character</a>
+  <a href="#combat">Combat</a><a href="#items">Items</a><a href="#session">Session</a>
+  <a href="#controls">Controls</a><a href="#surfaces">Surfaces</a><a href="#rules">Do &amp; don't</a>
+  <a href="#tokens">Tokens</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ══════════ THE IDEA ══════════ -->
+<section id="idea">
+  <div class="shead">
+    <span class="n">01 — THE ORGANISING PRINCIPLE</span>
+    <h2>Heat is state.</h2>
+    <p>Every design system needs one rule that decides the hundred small questions nobody
+      wrote down. Here it is: <b style="color:var(--forge-400)">cold stone is inert; anything alive,
+      available or happening is heated.</b> Colour is not decoration in Ember — it is the readout.</p>
+  </div>
+
+  <div class="grid g3">
+    <div class="plate" style="padding:20px">
+      <div class="runic hot" style="margin-bottom:9px">Cold</div>
+      <p class="note" style="margin:0">Basalt and iron. Spent spell slots, inactive turns, empty
+        equipment slots, unavailable actions, dead tokens, past log entries. The default state
+        of the interface is <b>unlit</b>.</p>
+    </div>
+    <div class="plate" style="padding:20px">
+      <div class="runic hot" style="margin-bottom:9px">Warm</div>
+      <p class="note" style="margin:0">Ember at partial intensity. Resources you still hold,
+        conditions running, quests active, items equipped. Present, but not demanding
+        your attention this second.</p>
+    </div>
+    <div class="plate hot" style="padding:20px;box-shadow:var(--glow-sm)">
+      <div class="runic hot" style="margin-bottom:9px">White-hot</div>
+      <p class="note" style="margin:0">Forge gold with a glow. <b>It is your turn.</b> A critical
+        landed. A legendary dropped. Reserved so completely that when it appears, every head
+        at the table turns.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Why this, for this product</h3>
+  <p class="note">Three surfaces read the same state at different distances — a DM leaning into a
+    laptop, a player glancing at a phone, and four people looking at a television across a room.
+    A system built on hue alone fails at the third distance. A system built on <b>luminance and
+    glow</b> survives it: heat is visible when detail is not. That is why the accent is light-emitting
+    rather than flat, and why the palette's cold end is genuinely dark rather than mid-grey.</p>
+  <p class="note">It also comes out of your own material. The two strongest elemental threads in the
+    handbook are <b>fire</b> (Ash-Blooded, Path of the Wildfire — Flameburst Rage, Burning Steps,
+    Cinder Skin, Inferno Surge) and <b>stone</b> (Stoneborn, "living rock-folk", the Petrified
+    condition). Fire against stone <em>is</em> lava. The system is named from your content, not
+    imposed on it.</p>
+</section>
+
+<!-- ══════════ COLOUR ══════════ -->
+<section id="colour">
+  <div class="shead">
+    <span class="n">02 — COLOUR</span>
+    <h2>Two ramps and a rule.</h2>
+    <p>Basalt carries every surface. Molten carries every signal. Everything else is a small,
+      strictly-scoped vocabulary for game semantics — damage types, rarity, conditions — where the
+      domain genuinely demands more colours than a normal product would allow.</p>
+  </div>
+
+  <div class="rlabel"><b>Basalt</b><i>Surfaces, borders, and the dark the heat sits in</i></div>
+  <div class="ramp">
+    <div style="background:#06070a"><span style="color:#6d7588">990</span></div>
+    <div style="background:#090b10"><span style="color:#6d7588">950</span></div>
+    <div style="background:#0d0f15"><span style="color:#6d7588">900</span></div>
+    <div style="background:#12141c"><span style="color:#8d96ab">850</span></div>
+    <div style="background:#171a23"><span style="color:#8d96ab">800</span></div>
+    <div style="background:#1c202b"><span style="color:#b4bccd">750</span></div>
+    <div style="background:#232833"><span style="color:#b4bccd">700</span></div>
+    <div style="background:#2d3340"><span style="color:#dfe4ee">600</span></div>
+    <div style="background:#3a4152"><span style="color:#dfe4ee">500</span></div>
+  </div>
+
+  <div class="rlabel"><b>Molten</b><i>The heat ramp — resources, damage, activity, fire</i></div>
+  <div class="ramp">
+    <div style="background:#2a0c04"><span style="color:#ffc999">950</span></div>
+    <div style="background:#4a1405"><span style="color:#ffc999">900</span></div>
+    <div style="background:#7a2408"><span style="color:#ffc999">800</span></div>
+    <div style="background:#a8380c"><span style="color:#ffe3a3">700</span></div>
+    <div style="background:#d14e11"><span style="color:#2a0c04">600</span></div>
+    <div style="background:#f26419"><span style="color:#2a0c04">500</span></div>
+    <div style="background:#ff8534"><span style="color:#2a0c04">400</span></div>
+    <div style="background:#ffa763"><span style="color:#2a0c04">300</span></div>
+    <div style="background:#ffc999"><span style="color:#2a0c04">200</span></div>
+  </div>
+
+  <div class="rlabel"><b>Forge &amp; Ash</b><i>Gold-hot highlight, and the type scale</i></div>
+  <div class="ramp">
+    <div style="background:#d99000"><span style="color:#2a1402">forge600</span></div>
+    <div style="background:#ffb627"><span style="color:#2a1402">forge500</span></div>
+    <div style="background:#ffd166"><span style="color:#2a1402">forge400</span></div>
+    <div style="background:#fff4dc"><span style="color:#2a1402">whitehot</span></div>
+    <div style="background:#565d70"><span style="color:#f2f5fa">ash500</span></div>
+    <div style="background:#6d7588"><span style="color:#f2f5fa">ash400</span></div>
+    <div style="background:#8d96ab"><span style="color:#06070a">ash300</span></div>
+    <div style="background:#b4bccd"><span style="color:#06070a">ash200</span></div>
+    <div style="background:#dfe4ee"><span style="color:#06070a">ash100</span></div>
+  </div>
+
+  <h3 class="sub">Damage types — all thirteen</h3>
+  <p class="note" style="margin-bottom:15px">Your rules define thirteen damage types and the log,
+    the tiles and the table view all need to distinguish them at a glance. These are tuned so no
+    two adjacent hues collide, and so the four most common in play — fire, cold, slashing,
+    piercing — are the most separable.</p>
+  <div class="dts" style="margin-bottom:8px">
+    <span class="dt" style="color:var(--dt-acid)"><i class="b" style="background:var(--dt-acid)"></i>acid</span>
+    <span class="dt" style="color:var(--dt-bludgeoning)"><i class="b" style="background:var(--dt-bludgeoning)"></i>bludgeoning</span>
+    <span class="dt" style="color:var(--dt-cold)"><i class="b" style="background:var(--dt-cold)"></i>cold</span>
+    <span class="dt" style="color:var(--dt-fire)"><i class="b" style="background:var(--dt-fire)"></i>fire</span>
+    <span class="dt" style="color:var(--dt-force)"><i class="b" style="background:var(--dt-force)"></i>force</span>
+    <span class="dt" style="color:var(--dt-lightning)"><i class="b" style="background:var(--dt-lightning)"></i>lightning</span>
+    <span class="dt" style="color:var(--dt-necrotic)"><i class="b" style="background:var(--dt-necrotic)"></i>necrotic</span>
+    <span class="dt" style="color:var(--dt-piercing)"><i class="b" style="background:var(--dt-piercing)"></i>piercing</span>
+    <span class="dt" style="color:var(--dt-poison)"><i class="b" style="background:var(--dt-poison)"></i>poison</span>
+    <span class="dt" style="color:var(--dt-psychic)"><i class="b" style="background:var(--dt-psychic)"></i>psychic</span>
+    <span class="dt" style="color:var(--dt-radiant)"><i class="b" style="background:var(--dt-radiant)"></i>radiant</span>
+    <span class="dt" style="color:var(--dt-slashing)"><i class="b" style="background:var(--dt-slashing)"></i>slashing</span>
+    <span class="dt" style="color:var(--dt-thunder)"><i class="b" style="background:var(--dt-thunder)"></i>thunder</span>
+  </div>
+
+  <h3 class="sub">Rarity</h3>
+  <div class="grid g2">
+    <div>
+      <div class="rar"><i class="swatch" style="background:var(--r-common)"></i>
+        <span class="nm" style="color:var(--r-common)">Common</span><span class="q">no glow</span></div>
+      <div class="rar"><i class="swatch" style="background:var(--r-uncommon)"></i>
+        <span class="nm" style="color:var(--r-uncommon)">Uncommon</span><span class="q">no glow</span></div>
+      <div class="rar"><i class="swatch" style="background:var(--r-rare)"></i>
+        <span class="nm" style="color:var(--r-rare)">Rare</span><span class="q">faint rim</span></div>
+    </div>
+    <div>
+      <div class="rar"><i class="swatch" style="background:var(--r-veryrare)"></i>
+        <span class="nm" style="color:var(--r-veryrare)">Very rare</span><span class="q">faint rim</span></div>
+      <div class="rar" style="box-shadow:inset 0 0 0 1px var(--forge-600),0 0 18px -6px rgba(255,182,39,.6)">
+        <i class="swatch" style="background:var(--r-legendary)"></i>
+        <span class="nm" style="color:var(--r-legendary)">Legendary</span><span class="q">glow</span></div>
+      <div class="rar" style="box-shadow:inset 0 0 0 1px var(--molten-600),0 0 22px -6px rgba(242,100,25,.7)">
+        <i class="swatch" style="background:var(--r-artifact)"></i>
+        <span class="nm" style="color:var(--r-artifact)">Artifact</span><span class="q">glow + pulse</span></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Accessibility constraints that are not negotiable</h3>
+  <div class="grid g2">
+    <div class="dd">
+      <div class="h">Holds</div>
+      <ul>
+        <li><code>ash-100</code> on <code>basalt-900</code> — 14.8:1</li>
+        <li><code>ash-300</code> on <code>basalt-800</code> — 6.9:1</li>
+        <li><code>forge-400</code> on <code>basalt-850</code> — 10.1:1</li>
+        <li><code>molten-400</code> on <code>basalt-900</code> — 7.4:1</li>
+      </ul>
+    </div>
+    <div class="dd no">
+      <div class="h">Never rely on</div>
+      <ul>
+        <li><code>molten-500</code> for body text on dark — it fails at small sizes. Accent only.</li>
+        <li>Damage-type hue alone — always pair with the type name or an icon.</li>
+        <li>Red/green for buff vs debuff — this system uses <b>green vs violet</b> for exactly that reason.</li>
+        <li>Glow as the only signal — pair with border weight, since glow is lost on projectors.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TYPE ══════════ -->
+<section id="type">
+  <div class="shead">
+    <span class="n">03 — TYPOGRAPHY</span>
+    <h2>Carved, set, and counted.</h2>
+    <p>Three roles, and a strict rule about numbers. Display type is chiselled and used sparingly.
+      Interface type is a neutral grotesque that gets out of the way. And every number that can
+      change during play is monospaced and tabular, so it never shifts as it counts.</p>
+  </div>
+
+  <div class="grid g3">
+    <div class="plate" style="padding:22px">
+      <div class="runic" style="margin-bottom:12px">Display — Cinzel</div>
+      <div class="display" style="font-size:33px;line-height:1.12;color:var(--ash-050)">Howl of Ruin</div>
+      <p class="note" style="margin-top:12px;font-size:12.5px">Roman carved capitals — the letterform
+        of things cut into stone. Wordmark, page titles, class and spell names in hero positions.
+        Never below 20px, never for more than one line of running text.</p>
+    </div>
+    <div class="plate" style="padding:22px">
+      <div class="runic" style="margin-bottom:12px">Interface — Inter</div>
+      <div style="font-size:22px;font-weight:650;letter-spacing:-.02em">Flameburst Rage</div>
+      <p class="note" style="margin-top:12px;font-size:12.5px">Everything a player reads to make a
+        decision: rules text, labels, descriptions, buttons. Weights 400 / 600 / 650 only. Tight
+        tracking on headings, normal on body.</p>
+    </div>
+    <div class="plate" style="padding:22px">
+      <div class="runic" style="margin-bottom:12px">Data — JetBrains Mono</div>
+      <div style="font-family:var(--f-mono);font-size:22px;font-weight:700;
+        font-variant-numeric:tabular-nums;color:var(--forge-400)">2d6+4 · DC 15</div>
+      <p class="note" style="margin-top:12px;font-size:12.5px">Every HP value, modifier, dice
+        expression, DC, slot count and timestamp. Tabular numerals are mandatory — a HP counter
+        that reflows as it ticks reads as broken.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">The runic label</h3>
+  <p class="note">The system's most repeated element, and the thing that will make it recognisable.
+    Mono, 10.5px, 600 weight, <code>0.18em</code> tracking, uppercase, <code>ash-500</code>. It marks
+    every section, every field and every stat — an inscription above the thing it names. Gold variant
+    for section openers only.</p>
+  <div class="demo">
+    <div>
+      <div class="runic" style="margin-bottom:5px">Armour Class</div>
+      <div style="font-family:var(--f-mono);font-size:26px;font-weight:700;color:var(--ash-050)">17</div>
+    </div>
+    <div style="margin-left:26px">
+      <div class="runic hot" style="margin-bottom:5px">Concentration</div>
+      <div style="font-size:15px;font-weight:600">Hold Person</div>
+    </div>
+  </div>
+
+  <h3 class="sub">Scale</h3>
+  <pre><span class="c">/* display */</span>  hero <span class="v">52/1.04</span>   title <span class="v">30/1.2</span>    card <span class="v">21/1.25</span>
+<span class="c">/* ui      */</span>  lg   <span class="v">17/1.5</span>    base  <span class="v">15/1.65</span>   sm   <span class="v">13/1.55</span>   xs <span class="v">12/1.5</span>
+<span class="c">/* mono    */</span>  stat <span class="v">26/1</span>      value <span class="v">17/1</span>     data <span class="v">12/1.6</span>   runic <span class="v">10.5/1</span>
+<span class="c">/* rule    */</span>  every changing number → <span class="p">font-variant-numeric: tabular-nums</span></pre>
+</section>
+
+<!-- ══════════ FORM ══════════ -->
+<section id="form">
+  <div class="shead">
+    <span class="n">04 — FORM LANGUAGE</span>
+    <h2>The cut corner.</h2>
+    <p>Nothing in Ember has a rounded corner. Surfaces are chamfered on two opposing corners —
+      top-left and bottom-right — as though cut from plate. It is one decision, applied without
+      exception, and it does more for recognisability than any amount of ornament.</p>
+  </div>
+
+  <div class="demo center">
+    <div class="plate" style="width:180px;height:110px;display:grid;place-items:center">
+      <span class="runic">Plate · 12px</span></div>
+    <div class="plate sm" style="width:150px;height:110px;display:grid;place-items:center;
+      background:var(--basalt-750)"><span class="runic">Raised · 8px</span></div>
+    <div class="plate hot" style="width:150px;height:110px;display:grid;place-items:center;
+      box-shadow:var(--glow-sm)"><span class="runic hot">Hot edge</span></div>
+  </div>
+
+  <div class="grid g3">
+    <div class="plate" style="padding:19px">
+      <div class="runic" style="margin-bottom:8px">Edges catch light</div>
+      <p class="note" style="margin:0;font-size:12.5px">Borders are a 1px gradient, brighter at the
+        top-left and dark at the bottom-right — metal lit from above. Never a flat grey stroke.</p>
+    </div>
+    <div class="plate" style="padding:19px">
+      <div class="runic" style="margin-bottom:8px">Depth is hard</div>
+      <p class="note" style="margin:0;font-size:12.5px">Elevation uses tight, dark shadow and inset
+        rims rather than soft blur. Stone does not diffuse. Blur is reserved for glow.</p>
+    </div>
+    <div class="plate" style="padding:19px">
+      <div class="runic" style="margin-bottom:8px">Grids are 4px</div>
+      <p class="note" style="margin:0;font-size:12.5px">4 / 8 / 12 / 16 / 24 / 32 / 48. Chamfers scale
+        with the surface: 6px on chips, 8px on controls, 12px on panels.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ MOTION ══════════ -->
+<section id="motion">
+  <div class="shead">
+    <span class="n">05 — MOTION</span>
+    <h2>Struck, then cooling.</h2>
+    <p>Two curves. Impacts are fast and hard on the way in. Recovery is long and eased on the way
+      out. Nothing in this product should feel bouncy — it is iron, not rubber.</p>
+  </div>
+  <div class="grid g4">
+    <div class="plate" style="padding:17px">
+      <div class="runic hot" style="margin-bottom:7px">Strike · 110ms</div>
+      <p class="note" style="margin:0;font-size:12.5px">Damage flash, dice land, button press.
+        <code>cubic-bezier(.2,0,.15,1)</code></p></div>
+    <div class="plate" style="padding:17px">
+      <div class="runic hot" style="margin-bottom:7px">Cool · 520ms</div>
+      <p class="note" style="margin:0;font-size:12.5px">HP draining, glow fading, panels settling.
+        <code>cubic-bezier(.16,1,.3,1)</code></p></div>
+    <div class="plate" style="padding:17px">
+      <div class="runic hot" style="margin-bottom:7px">Breathe · 2.4s</div>
+      <p class="note" style="margin:0;font-size:12.5px">Active turn, concentration, artifact rarity.
+        Opacity only — never scale.</p></div>
+    <div class="plate" style="padding:17px">
+      <div class="runic hot" style="margin-bottom:7px">Count</div>
+      <p class="note" style="margin:0;font-size:12.5px">Numbers roll to their new value over 400ms.
+        They never jump, and never reflow.</p></div>
+  </div>
+  <p class="note" style="margin-top:18px"><b>Reduced motion</b> removes every breathe and every roll,
+    and collapses strikes to an instant state change. Nothing in the system carries meaning that
+    only exists in the animation — the glow, the border and the number all say the same thing.</p>
+</section>
+
+<!-- ══════════ CHARACTER ══════════ -->
+<section id="char">
+  <div class="shead">
+    <span class="n">06 — CHARACTER COMPONENTS</span>
+    <h2>The frame.</h2>
+    <p>Your spec asks for a Core Character Stats panel "like the BG3 character frame" — always
+      visible, everything at a glance. These are its parts. Try them: they are live.</p>
+  </div>
+
+  <h3 class="sub">Vitality</h3>
+  <div class="demo col">
+    <div class="hp">
+      <div class="top">
+        <span class="lbl">Hit Points</span>
+        <span class="val"><span id="hpn">34</span><i> / 44</i>&nbsp; <span id="tmpn"
+          style="color:var(--frost)">+6</span></span>
+      </div>
+      <div class="track">
+        <div class="fill" id="hpfill" style="width:77%"></div>
+        <div class="temp" id="tempbar" style="left:77%;width:13%"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm btn-danger" onclick="dmg(7)">Take 7</button>
+      <button class="btn sm btn-danger" onclick="dmg(18)">Take 18</button>
+      <button class="btn sm btn-iron" onclick="dmg(-9)">Heal 9</button>
+      <button class="btn sm btn-ghost" onclick="resetHp()">Reset</button>
+    </div>
+    <p class="note" style="margin:0;font-size:12.5px">The bar cools as it drains — gold-hot at full,
+      molten through the middle, a dull banked red under 25%. Temporary HP is a frost-coloured
+      hatch riding on top, visually foreign to the heat scale because it is not really your life.</p>
+  </div>
+
+  <h3 class="sub">Ability scores &amp; vitals</h3>
+  <div class="demo col">
+    <div class="abils">
+      <div class="abil"><div class="k">STR</div><div class="m">+2</div><div class="s">15</div></div>
+      <div class="abil"><div class="k">DEX</div><div class="m">+3</div><div class="s">16</div></div>
+      <div class="abil"><div class="k">CON</div><div class="m">+2</div><div class="s">14</div></div>
+      <div class="abil"><div class="k">INT</div><div class="m">+0</div><div class="s">11</div></div>
+      <div class="abil"><div class="k">WIS</div><div class="m">+1</div><div class="s">12</div></div>
+      <div class="abil"><div class="k">CHA</div><div class="m">−1</div><div class="s">9</div></div>
+    </div>
+    <div class="vitals">
+      <div class="vital"><span class="k">AC</span><span class="v">17</span></div>
+      <div class="vital"><span class="k">INIT</span><span class="v">+3</span></div>
+      <div class="vital"><span class="k">SPEED</span><span class="v">30</span></div>
+      <div class="vital"><span class="k">PROF</span><span class="v">+3</span></div>
+      <div class="vital"><span class="k">PASS PERC</span><span class="v">14</span></div>
+    </div>
+    <p class="note" style="margin:0;font-size:12.5px">The modifier is the hero number and the raw
+      score is subordinate — players act on modifiers, not scores. Both are present because
+      character creation needs the score.</p>
+  </div>
+
+  <h3 class="sub">Resources — spell slots and class pools</h3>
+  <div class="demo col">
+    <div class="slots" id="slots"></div>
+    <p class="note" style="margin:0;font-size:12.5px">Click a slot to spend it. Spent slots go cold
+      and stay in place — you always see your <em>capacity</em>, not just what is left, which is the
+      thing that actually informs a decision. The same component covers Rage, Ki, Superiority Dice
+      and any limited-use feature.</p>
+  </div>
+
+  <h3 class="sub">Conditions</h3>
+  <div class="demo">
+    <div class="conds">
+      <span class="cond buff"><i class="dot"></i>Blessed<span class="dur">1m</span></span>
+      <span class="cond buff"><i class="dot"></i>Hasted<span class="dur">3r</span></span>
+      <span class="cond conc"><i class="dot"></i>Concentrating<span class="dur">Hold Person</span></span>
+      <span class="cond debuff"><i class="dot"></i>Poisoned<span class="dur">4r</span></span>
+      <span class="cond debuff"><i class="dot"></i>Restrained</span>
+      <span class="cond debuff"><i class="dot"></i>Frightened<span class="dur">2r</span></span>
+    </div>
+  </div>
+  <p class="note">Green for what helps, violet for what harms, gold and breathing for concentration.
+    Deliberately not red/green: a meaningful share of players cannot separate those, and this is the
+    one readout where a mistake costs someone their turn.</p>
+</section>
+
+<!-- ══════════ COMBAT ══════════ -->
+<section id="combat">
+  <div class="shead">
+    <span class="n">07 — COMBAT COMPONENTS</span>
+    <h2>Doing things.</h2>
+    <p>The Actions &amp; Spells panel is where the player actually plays. Tiles carry just enough to
+      choose; the detail card carries everything needed to commit.</p>
+  </div>
+
+  <h3 class="sub">Action tiles</h3>
+  <div class="demo col">
+    <div class="tabs" style="max-width:520px">
+      <button class="on">Actions</button><button>Spells</button><button>Features</button>
+      <button>Reactions</button><button>Other</button>
+    </div>
+    <div class="tiles">
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M20 3v4l-9 9-2-2 9-9zM4 15l5 5M6.5 17.5 3 21l3.5-.5.5-3z"/></svg></span>
+        <span class="nm">Longsword</span></div>
+        <div class="mt"><span class="atype action">Action</span><span>melee</span><span>1d8+3</span></div></button>
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-1.6.7-3 1.8-4.4.5 1 1.2 1.6 2 1.9-.3-2.6.4-5 1.2-6.5z"/></svg></span>
+        <span class="nm">Fireball</span></div>
+        <div class="mt"><span class="atype action">Action</span><span>150ft</span><span>8d6</span></div></button>
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="nm">Healing Word</span></div>
+        <div class="mt"><span class="atype bonus">Bonus</span><span>60ft</span><span>2d4+3</span></div></button>
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7.3-7 9-4-1.7-7-5-7-9V6l7-3z"/></svg></span>
+        <span class="nm">Shield</span></div>
+        <div class="mt"><span class="atype reaction">Reaction</span><span>self</span><span>+5 AC</span></div></button>
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M3 8h11M3 12h8M3 16h13M17 6l4 6-4 6"/></svg></span>
+        <span class="nm">Dash</span></div>
+        <div class="mt"><span class="atype action">Action</span><span>self</span><span>×2 move</span></div></button>
+      <button class="tile"><div class="r1"><span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M4 10v4h3l5 4V6L7 10H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a7 7 0 0 1 0 11"/></svg></span>
+        <span class="nm">Battle Cry</span></div>
+        <div class="mt"><span class="atype bonus">Bonus</span><span>30ft</span><span>1/rest</span></div></button>
+    </div>
+  </div>
+
+  <h3 class="sub">Detail card</h3>
+  <div class="demo">
+    <div class="plate" style="max-width:390px;padding:20px">
+      <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:14px">
+        <span class="ic" style="width:38px;height:38px;font-size:19px;display:grid;place-items:center;
+          background:var(--basalt-900);box-shadow:inset 0 0 0 1px var(--basalt-600);color:var(--molten-400)"><svg class="ico lg" viewBox="0 0 24 24"><path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-1.6.7-3 1.8-4.4.5 1 1.2 1.6 2 1.9-.3-2.6.4-5 1.2-6.5z"/></svg></span>
+        <div>
+          <div class="display" style="font-size:21px;color:var(--ash-050);line-height:1.15">Fireball</div>
+          <div class="runic" style="margin-top:4px">Level 3 · Evocation</div>
+        </div>
+      </div>
+      <div class="vitals" style="margin-bottom:13px">
+        <div class="vital"><span class="k">RANGE</span><span class="v" style="font-size:13px">150ft</span></div>
+        <div class="vital"><span class="k">SAVE</span><span class="v" style="font-size:13px">DEX 15</span></div>
+        <div class="vital"><span class="k">DAMAGE</span><span class="v" style="font-size:13px">8d6</span></div>
+      </div>
+      <p style="font-size:13px;color:var(--ash-300);margin-bottom:14px">A bright streak flashes to a
+        point you choose, then blossoms into a roar of flame. Each creature in a 20-foot radius makes
+        a Dexterity save, taking <span style="color:var(--dt-fire)">8d6 fire damage</span> on a
+        failure, half as much on a success.</p>
+      <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-forge sm">Cast — L3</button>
+        <button class="btn btn-iron sm">Upcast</button>
+        <span class="runic" style="margin-left:auto">3 slots left</span>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">Initiative order</h3>
+  <div class="demo">
+    <div class="init" style="max-width:430px">
+      <div class="ir active"><span class="roll">22</span>
+        <span class="nm">Lyra <em>Wizard 5</em></span><span class="side pc">You</span></div>
+      <div class="ir"><span class="roll">19</span>
+        <span class="nm">Goblin Boss <em>21 hp</em></span><span class="side npc">Foe</span></div>
+      <div class="ir"><span class="roll">14</span>
+        <span class="nm">Bran <em>Fighter 5</em></span><span class="side pc">Ally</span></div>
+      <div class="ir" style="opacity:.42"><span class="roll">9</span>
+        <span class="nm">Ogre <em>bloodied</em></span><span class="side npc">Foe</span></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Dice</h3>
+  <div class="demo center">
+    <div class="die" id="d20" onclick="rollDie()"><span class="n" id="dn">20</span></div>
+    <div>
+      <div class="runic" style="margin-bottom:5px">Result</div>
+      <div id="dres" style="font-family:var(--f-mono);font-size:15px;color:var(--ash-200)">
+        Click the die</div>
+      <p class="note" style="margin:8px 0 0;font-size:12px;max-width:330px">A natural 20 goes
+        white-hot; a natural 1 goes to danger. Every other result stays neutral — the die is a
+        readout, not a slot machine. <b>All randomness is server-side</b>; this is only its face.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ITEMS ══════════ -->
+<section id="items">
+  <div class="shead">
+    <span class="n">08 — ITEMS &amp; EQUIPMENT</span>
+    <h2>The paper doll.</h2>
+    <p>Your spec calls for slot-based equipment "similar to an RPG paper doll", plus an inventory
+      with categories and rarity. Rarity is the only place gold appears outside of turn state.</p>
+  </div>
+  <div class="demo">
+    <div>
+      <div class="cap">Equipped</div>
+      <div class="doll">
+        <div class="slot empty">head</div>
+        <div class="slot filled"><svg class="ico lg" viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 14 0v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5zM5 13h14M12 13v6"/></svg></div>
+        <div class="slot empty">amul</div>
+        <div class="slot filled"><svg class="ico lg" viewBox="0 0 24 24"><path d="M20 3v4l-9 9-2-2 9-9zM4 15l5 5M6.5 17.5 3 21l3.5-.5.5-3z"/></svg></div>
+        <div class="slot filled legendary" style="color:var(--forge-400)"><svg class="ico lg" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7.3-7 9-4-1.7-7-5-7-9V6l7-3z"/></svg></div>
+        <div class="slot empty">off</div>
+        <div class="slot empty">ring</div>
+        <div class="slot filled"><svg class="ico lg" viewBox="0 0 24 24"><path d="M8 3v10c0 2-1 3-1 5v3h11v-3c0-2-3-2.5-4.5-4L12 3H8z"/></svg></div>
+        <div class="slot empty">ring</div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:280px">
+      <div class="cap">Inventory</div>
+      <div class="rar"><i class="swatch" style="background:var(--r-legendary)"></i>
+        <span class="nm" style="color:var(--r-legendary)">Aegis of the Cinder Skin</span>
+        <span class="q">shield</span></div>
+      <div class="rar"><i class="swatch" style="background:var(--r-rare)"></i>
+        <span class="nm" style="color:var(--r-rare)">Ashwood Longbow</span><span class="q">weapon</span></div>
+      <div class="rar"><i class="swatch" style="background:var(--r-uncommon)"></i>
+        <span class="nm" style="color:var(--r-uncommon)">Potion of Healing</span><span class="q">×3</span></div>
+      <div class="rar"><i class="swatch" style="background:var(--r-common)"></i>
+        <span class="nm" style="color:var(--r-common)">Rope, hempen (50ft)</span><span class="q">10 lb</span></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Quests</h3>
+  <div class="demo col">
+    <div class="quest">
+      <h4>The Cinder Road</h4>
+      <p>The caravan road south of the pass has gone quiet. Three trade wagons overdue, no bodies found.</p>
+      <div class="obj"><span>▸</span>Reach the waystation before nightfall</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SESSION ══════════ -->
+<section id="session">
+  <div class="shead">
+    <span class="n">09 — SESSION</span>
+    <h2>What just happened.</h2>
+    <p>The session log is the player-facing face of the event stream. Every row is one committed
+      event — which is why the log needs no separate data model, and why it can be filtered,
+      replayed and cited in a recap.</p>
+  </div>
+  <div class="demo col">
+    <div class="tabs" style="max-width:400px">
+      <button class="on">All</button><button>Combat</button><button>Exploration</button>
+      <button>Social</button>
+    </div>
+    <div class="log">
+      <div class="le sys"><span class="i">◈</span><span class="t">21:04</span>
+        <span class="x">Round <b>3</b> begins</span></div>
+      <div class="le cast"><span class="i">✦</span><span class="t">21:04</span>
+        <span class="x"><b>Lyra</b> casts <b>Fireball</b> at the goblin line
+        <span style="color:var(--ash-500)">— L3 slot spent</span></span></div>
+      <div class="le dmg"><span class="i">▼</span><span class="t">21:04</span>
+        <span class="x"><b>Goblin Boss</b> takes <b style="color:var(--dt-fire)">27 fire</b>
+        <span style="color:var(--ash-500)">— DEX save failed</span></span></div>
+      <div class="le crit"><span class="i">★</span><span class="t">21:05</span>
+        <span class="x"><b>Bran</b> critically hits the Ogre for
+        <b style="color:var(--dt-slashing)">31 slashing</b></span></div>
+      <div class="le dmg"><span class="i">▼</span><span class="t">21:05</span>
+        <span class="x"><b>Sela</b> takes <b style="color:var(--dt-bludgeoning)">11 bludgeoning</b></span></div>
+      <div class="le heal"><span class="i">✚</span><span class="t">21:06</span>
+        <span class="x"><b>Doran</b> heals <b>Sela</b> for
+        <b style="color:var(--verdant)">8</b></span></div>
+      <div class="le sys"><span class="i">◈</span><span class="t">21:07</span>
+        <span class="x">Short rest taken</span></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Narration</h3>
+  <div class="demo">
+    <div class="plate" style="padding:19px 22px;border-left:2px solid var(--forge-500);width:100%;
+      background:linear-gradient(90deg,rgba(255,182,39,.05),transparent 30%)">
+      <div class="runic hot" style="margin-bottom:8px">The Dungeon Master</div>
+      <p style="margin:0;font-size:15.5px;line-height:1.68;color:var(--ash-200)">The room goes white.
+        When it comes back, the goblins are scattered like kicked coals and the crates are burning
+        where they stand. Somewhere behind the smoke, something much heavier begins to move.</p>
+    </div>
+  </div>
+  <p class="note">Narration is the one surface that gets generous measure and line height — it is
+    prose, and it is meant to be read aloud. Everything else in the product is scanned.</p>
+</section>
+
+<!-- ══════════ CONTROLS ══════════ -->
+<section id="controls">
+  <div class="shead">
+    <span class="n">10 — CONTROLS</span>
+    <h2>Forge, iron, ghost.</h2>
+    <p>One heated button per view, at most. If two things glow, neither is the answer.</p>
+  </div>
+  <div class="demo center">
+    <button class="btn btn-forge">Enter session</button>
+    <button class="btn btn-iron">Roll attack</button>
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-danger">Leave campaign</button>
+    <button class="btn btn-forge" disabled>No slots left</button>
+  </div>
+  <div class="demo">
+    <div class="field">
+      <label>Campaign code</label>
+      <input placeholder="EMBER-4417" />
+    </div>
+    <div class="field" style="max-width:260px">
+      <label>Display name</label>
+      <input placeholder="Elminster" />
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SURFACES ══════════ -->
+<section id="surfaces">
+  <div class="shead">
+    <span class="n">11 — THE THREE SURFACES</span>
+    <h2>Same system, three distances.</h2>
+    <p>The tokens do not change between surfaces. Density, scale and how much heat is permitted do.</p>
+  </div>
+  <div class="grid g3">
+    <div class="plate" style="padding:22px;border-top:2px solid var(--forge-500)">
+      <div class="runic hot" style="margin-bottom:9px">/dm — arm's length</div>
+      <h4 style="font-size:16px;margin-bottom:9px">DM Console</h4>
+      <p class="note" style="font-size:12.5px;margin:0">Highest density in the product. Base 13px,
+        tighter spacing, more per screen. Hidden information carries a permanent
+        <code>dm_only</code> rim in iron so it can never be confused with what the table can see.
+        Heat is used sparingly — the DM is looking at everything at once.</p>
+    </div>
+    <div class="plate" style="padding:22px;border-top:2px solid var(--frost)">
+      <div class="runic hot" style="margin-bottom:9px">/play — in the hand</div>
+      <h4 style="font-size:16px;margin-bottom:9px">Player App</h4>
+      <p class="note" style="font-size:12.5px;margin:0">Touch first: 44px minimum targets, base 15px,
+        one column. The stat frame is pinned and everything else scrolls beneath it. This is the
+        only surface where a person is looking down instead of up — brightness lowered accordingly.</p>
+    </div>
+    <div class="plate" style="padding:22px;border-top:2px solid var(--molten-500)">
+      <div class="runic hot" style="margin-bottom:9px">/table — across the room</div>
+      <h4 style="font-size:16px;margin-bottom:9px">Table View</h4>
+      <p class="note" style="font-size:12.5px;margin:0">Everything scales ×1.6. No text under 18px,
+        no interactive affordances at all, no hover states. Heat is unrestricted here — this is the
+        surface the whole system was tuned for. Assume a badly-calibrated television.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ RULES ══════════ -->
+<section id="rules">
+  <div class="shead">
+    <span class="n">12 — DO &amp; DON'T</span>
+    <h2>How to not wreck it.</h2>
+  </div>
+  <div class="grid g2">
+    <div class="dd">
+      <div class="h">Do</div>
+      <ul>
+        <li>Let cold be the default. Restraint at the dark end is what makes the heat land.</li>
+        <li>Use one heated element per view — the thing you want them to do next.</li>
+        <li>Put every changing number in tabular mono.</li>
+        <li>Pair every colour signal with a shape, a label or a border weight.</li>
+        <li>Scale the chamfer with the surface, never the other way round.</li>
+        <li>Reserve gold for turn state, concentration and legendary. Nothing else.</li>
+      </ul>
+    </div>
+    <div class="dd no">
+      <div class="h">Don't</div>
+      <ul>
+        <li>Round a corner. Not once, not for a modal, not for an avatar.</li>
+        <li>Use molten for body copy, links, or anything a player reads a paragraph of.</li>
+        <li>Add a second display typeface. The system has one, and it is used rarely.</li>
+        <li>Animate anything with scale or bounce — this world is iron.</li>
+        <li>Introduce a new semantic colour without deleting one.</li>
+        <li>Use texture or parchment imagery. The fantasy here comes from light, not from props.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TOKENS ══════════ -->
+<section id="tokens">
+  <div class="shead">
+    <span class="n">13 — IMPLEMENTATION</span>
+    <h2>Tokens.</h2>
+    <p>These are already wired into the Ember scaffold as CSS custom properties and Tailwind theme
+      extensions. Component classes live in the <code>components</code> layer so utilities always win.</p>
+  </div>
+<pre><span class="c">/* globals.css */</span>
+:root{
+  <span class="c">/* basalt — surfaces */</span>
+  --basalt-990:<span class="v">#06070a</span>; --basalt-900:<span class="v">#0d0f15</span>;
+  --basalt-850:<span class="v">#12141c</span>; --basalt-800:<span class="v">#171a23</span>;
+  --basalt-700:<span class="v">#232833</span>; --basalt-600:<span class="v">#2d3340</span>;
+  <span class="c">/* molten — the heat ramp */</span>
+  --molten-700:<span class="v">#a8380c</span>; --molten-600:<span class="v">#d14e11</span>;
+  --molten-500:<span class="v">#f26419</span>; --molten-400:<span class="v">#ff8534</span>;
+  <span class="c">/* forge — highlight */</span>
+  --forge-500:<span class="v">#ffb627</span>;  --forge-400:<span class="v">#ffd166</span>;
+  <span class="c">/* ash — type */</span>
+  --ash-500:<span class="v">#565d70</span>; --ash-300:<span class="v">#8d96ab</span>;
+  --ash-100:<span class="v">#dfe4ee</span>;
+  <span class="c">/* form */</span>
+  --chamfer:<span class="v">12px</span>;
+}
+
+<span class="c">/* the surface primitive — two cut corners, gradient edge */</span>
+.plate{
+  <span class="p">clip-path</span>:polygon(var(--chamfer) 0, 100% 0,
+    100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer));
+}</pre>
+  <p class="note">The chamfer is a <code>clip-path</code>, and the 1px edge is a masked gradient
+    layered behind it — which is why borders survive the cut instead of being clipped away with it.
+    That single technique is the whole form language; everything else is colour and restraint.</p>
+</section>
+
+<footer>
+  <b>Ember Design System v1.0.</b> Derived from the Side Project handbook — the fire and stone
+  language is yours (Ash-Blooded, Path of the Wildfire, Stoneborn); the system around it is the
+  proposal. Cinzel, Inter and JetBrains Mono are recommendations, not commitments — the system
+  works on system fonts, which is what this page is rendered in.
+</footer>
+
+</div>
+
+<script>
+/* ── HP demo ── */
+let hp=34, max=44, tmp=6;
+function paint(){
+  const pct=Math.max(0,hp/max*100);
+  const f=document.getElementById('hpfill');
+  f.style.width=pct+'%';
+  f.className='fill'+(pct<25?' cold':pct<60?' warm':'');
+  document.getElementById('hpn').textContent=hp;
+  const t=document.getElementById('tempbar');
+  t.style.left=pct+'%'; t.style.width=(tmp/max*100)+'%';
+  document.getElementById('tmpn').textContent=tmp?'+'+tmp:'';
+}
+function dmg(n){
+  if(n>0&&tmp){const a=Math.min(tmp,n);tmp-=a;n-=a;}
+  hp=Math.max(0,Math.min(max,hp-n));paint();
+}
+function resetHp(){hp=34;tmp=6;paint();}
+paint();
+
+/* ── spell slots ── */
+const SL=[[1,4,4],[2,3,3],[3,3,2],[4,1,1]];
+document.getElementById('slots').innerHTML=SL.map(([lv,cap,left])=>
+  `<span class="slotgrp"><span class="lv">L${lv}</span>`+
+  Array.from({length:cap},(_,i)=>
+    `<i class="pip${i>=left?' spent':''}" onclick="this.classList.toggle('spent')"></i>`).join('')+
+  `</span>`).join('');
+
+/* ── die ── */
+function rollDie(){
+  const d=document.getElementById('d20');
+  d.classList.remove('rolling','nat20','nat1');
+  void d.offsetWidth; d.classList.add('rolling');
+  let n=0;
+  const iv=setInterval(()=>{
+    n=1+Math.floor(Math.random()*20);
+    document.getElementById('dn').textContent=n;
+  },45);
+  setTimeout(()=>{
+    clearInterval(iv);
+    n=1+Math.floor(Math.random()*20);
+    document.getElementById('dn').textContent=n;
+    if(n===20)d.classList.add('nat20');
+    if(n===1)d.classList.add('nat1');
+    const total=n+7;
+    document.getElementById('dres').innerHTML=
+      n===20?'<span style="color:var(--forge-400)">NATURAL 20 — critical hit</span>':
+      n===1 ?'<span style="color:#ff8f92">NATURAL 1 — critical miss</span>':
+      `d20 <span style="color:var(--ash-500)">(${n})</span> + 7 = <b style="color:var(--ash-050)">${total}</b>`;
+  },560);
+}
+
+/* ── tabs ── */
+document.querySelectorAll('.tabs').forEach(g=>{
+  g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    g.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,26 +1,360 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════
+   EMBER DESIGN SYSTEM — TOKENS
+   Direction: forge-light in a cold hall. Basalt and iron, lit by molten heat.
+   ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Basalt: cold carved stone. The world when nothing is happening. ── */
+  --basalt-990: #06070a;
+  --basalt-950: #090b10;
+  --basalt-900: #0d0f15;
+  --basalt-850: #12141c;
+  --basalt-800: #171a23;
+  --basalt-750: #1c202b;
+  --basalt-700: #232833;
+  --basalt-600: #2d3340;
+  --basalt-500: #3a4152;
+
+  /* ── Ash: everything written on the stone. ── */
+  --ash-500: #565d70;
+  --ash-400: #6d7588;
+  --ash-300: #8d96ab;
+  --ash-200: #b4bccd;
+  --ash-100: #dfe4ee;
+  --ash-050: #f2f5fa;
+
+  /* ── Molten: the heat ramp. Signature of the system. ── */
+  --molten-950: #2a0c04;
+  --molten-900: #4a1405;
+  --molten-800: #7a2408;
+  --molten-700: #a8380c;
+  --molten-600: #d14e11;
+  --molten-500: #f26419;
+  --molten-400: #ff8534;
+  --molten-300: #ffa763;
+  --molten-200: #ffc999;
+
+  /* ── Forge: gold-hot. Highlight, legendary, the wordmark. ── */
+  --forge-600: #d99000;
+  --forge-500: #ffb627;
+  --forge-400: #ffd166;
+  --forge-300: #ffe3a3;
+  --whitehot: #fff4dc;
+
+  /* ── Iron: metals for structure and rank. ── */
+  --iron-700: #39404f;
+  --iron-600: #4a5164;
+  --iron-500: #646d84;
+  --iron-400: #98a2b8;
+
+  /* ── Semantic ── */
+  --vital: #f26419;
+  --frost: #5ec8e8;
+  --verdant: #5fbf7f;
+  --venom: #7fb03a;
+  --shadow: #8b6bc4;
+  --danger: #e5484d;
+  --arcane: #b98cf0;
+
+  /* ── Damage types (13) ── */
+  --dt-acid: #a3c93a;
+  --dt-bludgeoning: #98a2b8;
+  --dt-cold: #5ec8e8;
+  --dt-fire: #f26419;
+  --dt-force: #b98cf0;
+  --dt-lightning: #7ea6ff;
+  --dt-necrotic: #6f5a9e;
+  --dt-piercing: #b4bccd;
+  --dt-poison: #7fb03a;
+  --dt-psychic: #e06bb0;
+  --dt-radiant: #ffd166;
+  --dt-slashing: #d0d6e2;
+  --dt-thunder: #86e0d8;
+
+  /* ── Rarity ── */
+  --r-common: #8d96ab;
+  --r-uncommon: #5fbf7f;
+  --r-rare: #5aa9e6;
+  --r-veryrare: #b98cf0;
+  --r-legendary: #ffb627;
+  --r-artifact: #f26419;
+
+  /* ── Type ── */
+  --f-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --f-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas,
+    monospace;
+
+  /* ── Form ── */
+  --chamfer: 12px;
+  --edge: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.02) 34%,
+    rgba(0, 0, 0, 0.4)
+  );
+  --edge-hot: linear-gradient(
+    160deg,
+    rgba(255, 182, 39, 0.55),
+    rgba(242, 100, 25, 0.16) 40%,
+    rgba(0, 0, 0, 0.4)
+  );
+  --glow-sm: 0 0 0 1px rgba(242, 100, 25, 0.22), 0 0 14px -2px rgba(242, 100, 25, 0.4);
+  --glow-md: 0 0 0 1px rgba(242, 100, 25, 0.3), 0 0 30px -4px rgba(242, 100, 25, 0.55);
+  --lift: 0 10px 30px -12px rgba(0, 0, 0, 0.85);
+
+  /* ── Motion ── */
+  --t-fast: 110ms cubic-bezier(0.2, 0, 0.15, 1);
+  --t-base: 220ms cubic-bezier(0.2, 0, 0.15, 1);
+  --t-slow: 520ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
+* {
+  border-color: var(--basalt-700);
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--basalt-950);
+  color: var(--ash-100);
+  font-family: var(--f-ui);
+  background-image: radial-gradient(
+      1100px 500px at 78% -8%,
+      rgba(242, 100, 25, 0.1),
+      transparent 62%
+    ),
+    radial-gradient(800px 400px at 8% 4%, rgba(94, 200, 232, 0.045), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--forge-500);
+  color: #2a1402;
+}
+
+/* These are component classes, not utilities. They must live in the
+   components layer so that utility classes applied in markup win the
+   cascade instead of losing to these declarations. */
+@layer components {
+  /* runic label — the inscription style, every eyebrow and metadata label */
+  .runic {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ash-500);
+  }
+  .runic.hot {
+    color: var(--forge-500);
+  }
+
+  /* chamfered plate — the core surface primitive */
+  .plate {
+    position: relative;
+    background: var(--basalt-800);
+    clip-path: polygon(
+      var(--chamfer) 0,
+      100% 0,
+      100% calc(100% - var(--chamfer)),
+      calc(100% - var(--chamfer)) 100%,
+      0 100%,
+      0 var(--chamfer)
+    );
+  }
+  .plate::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: var(--edge);
+    clip-path: inherit;
+    pointer-events: none;
+    -webkit-mask: linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+  .plate.hot::before {
+    background: var(--edge-hot);
+  }
+  .plate.sm {
+    --chamfer: 8px;
+  }
+  .plate.xs {
+    --chamfer: 6px;
+  }
+
+  /* buttons */
+  .btn {
+    position: relative;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    padding: 10px 20px;
+    border: 0;
+    cursor: pointer;
+    color: var(--ash-100);
+    background: var(--basalt-700);
+    clip-path: polygon(
+      9px 0,
+      100% 0,
+      100% calc(100% - 9px),
+      calc(100% - 9px) 100%,
+      0 100%,
+      0 9px
+    );
+    transition: var(--t-fast);
+  }
+  .btn:hover {
+    background: var(--basalt-600);
+    transform: translateY(-1px);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+  .btn-forge {
+    background: linear-gradient(178deg, var(--forge-500), var(--molten-600));
+    color: #2a1402;
+    box-shadow: var(--glow-sm);
+  }
+  .btn-forge:hover {
+    background: linear-gradient(178deg, var(--forge-400), var(--molten-500));
+    box-shadow: var(--glow-md);
+  }
+  .btn-iron {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--iron-600);
+    color: var(--ash-200);
+  }
+  .btn-iron:hover {
+    box-shadow: inset 0 0 0 1px var(--forge-600);
+    color: var(--forge-400);
+    background: rgba(255, 182, 39, 0.06);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ash-400);
+  }
+  .btn-ghost:hover {
+    color: var(--ash-050);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .btn-danger {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(229, 72, 77, 0.5);
+    color: #ff8f92;
+  }
+  .btn-danger:hover {
+    background: rgba(229, 72, 77, 0.14);
+  }
+  .btn:disabled {
+    opacity: 0.34;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn.sm {
+    font-size: 11.5px;
+    padding: 7px 14px;
+    clip-path: polygon(
+      7px 0,
+      100% 0,
+      100% calc(100% - 7px),
+      calc(100% - 7px) 100%,
+      0 100%,
+      0 7px
+    );
+  }
+
+  /* inputs */
+  .field {
+    width: 100%;
+    max-width: 330px;
+  }
+  .field label {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ash-500);
+    margin-bottom: 7px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--basalt-900);
+    border: 0;
+    padding: 11px 13px;
+    color: var(--ash-100);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    box-shadow: inset 0 0 0 1px var(--basalt-600);
+    transition: var(--t-fast);
+    clip-path: polygon(
+      8px 0,
+      100% 0,
+      100% calc(100% - 8px),
+      calc(100% - 8px) 100%,
+      0 100%,
+      0 8px
+    );
+  }
+  .field input:focus {
+    outline: 0;
+    box-shadow: inset 0 0 0 1px var(--forge-500), var(--glow-sm);
+  }
+  .field input::placeholder {
+    color: var(--ash-500);
+  }
+
+  /* tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--basalt-900);
+    padding: 4px;
+    box-shadow: inset 0 0 0 1px var(--basalt-700);
+  }
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: 0;
+    color: var(--ash-400);
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--t-fast);
+  }
+  .tabs button:hover {
+    color: var(--ash-100);
+  }
+  .tabs button.on {
+    background: var(--basalt-750);
+    color: var(--forge-400);
+    box-shadow: inset 0 0 0 1px var(--basalt-600);
+  }
 }

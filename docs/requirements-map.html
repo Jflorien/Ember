@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember — Product Requirements Map &amp; Ship Plan</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#242a38; --line2:#2e3546;
+    --ink:#e8eaf0; --dim:#9aa1b4; --faint:#6b7286;
+    --gold:#e0a63c; --fire:#ff7a2f; --blue:#5aa9e6; --green:#63c88a; --red:#e05a5a; --violet:#a98cf0;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+  header{border-bottom:1px solid var(--line);background:
+    radial-gradient(900px 340px at 76% -12%, rgba(255,122,47,.14), transparent 62%),
+    radial-gradient(700px 300px at 12% -8%, rgba(90,169,230,.09), transparent 60%)}
+  .hin{max-width:1180px;margin:0 auto;padding:52px 28px 40px}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  h1{font-size:40px;line-height:1.1;margin:14px 0 12px;letter-spacing:-.022em;font-weight:700}
+  h1 .sub{color:var(--faint);font-weight:400}
+  .lede{font-size:17px;color:var(--dim);max-width:730px;margin:0}
+  .locked{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+  .lk{background:rgba(255,255,255,.035);border:1px solid var(--line2);border-radius:8px;
+    padding:7px 12px;font-size:12px;color:var(--dim)}
+  .lk b{color:var(--ink);font-weight:600}
+
+  nav{position:sticky;top:0;z-index:50;background:rgba(11,13,18,.93);
+    backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nin{max-width:1180px;margin:0 auto;padding:0 28px;display:flex;gap:2px;overflow-x:auto}
+  .nin::-webkit-scrollbar{display:none}
+  nav a{color:var(--faint);text-decoration:none;font-size:12.5px;font-weight:600;
+    padding:13px 12px;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s}
+  nav a:hover{color:var(--ink)}
+
+  section{padding:52px 0 8px;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:12px;letter-spacing:.17em;text-transform:uppercase;color:var(--gold);
+    font-weight:700;margin:0 0 8px}
+  h2+.h2sub{font-size:25px;font-weight:670;letter-spacing:-.016em;margin:0 0 10px;color:var(--ink);line-height:1.25}
+  .intro{color:var(--dim);max-width:840px;margin:0 0 30px}
+  h3{font-size:16px;font-weight:650;margin:34px 0 10px;letter-spacing:-.01em}
+  p{margin:0 0 14px}
+  strong{color:#fff;font-weight:640}
+  a.ln{color:var(--blue)}
+
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:900px){.g3,.g2{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:19px 20px}
+  .card h4{margin:0 0 4px;font-size:14.5px;font-weight:650}
+  .card .role{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);font-weight:700;margin-bottom:9px}
+  .card p{font-size:13.5px;color:var(--dim);margin:0}
+  .card p+p{margin-top:9px}
+
+  .surf{border-left:3px solid var(--line2)}
+  .surf.dm{border-left-color:var(--gold)}
+  .surf.play{border-left-color:var(--blue)}
+  .surf.table{border-left-color:var(--fire)}
+  .surf .dev{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:11px;
+    padding-top:11px;border-top:1px solid var(--line)}
+
+  pre{background:#080a0f;border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+    overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.62;color:#c3cad9;margin:0 0 16px}
+  pre .c{color:#5b6377} pre .k{color:var(--violet)} pre .s{color:#8fca9e} pre .n{color:var(--gold)}
+  code{font-family:var(--mono);font-size:12.5px;background:#0a0d13;padding:2px 5px;
+    border-radius:4px;color:var(--gold);border:1px solid var(--line)}
+
+  /* requirements table */
+  .filters{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 20px;align-items:center}
+  .filters .fl{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--faint);font-weight:700;margin-right:6px}
+  .fb{background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+    font:inherit;font-size:12px;font-weight:600;padding:6px 13px;border-radius:20px;cursor:pointer;transition:.15s}
+  .fb:hover{color:var(--ink);border-color:var(--line2)}
+  .fb.on{background:var(--gold);color:#1a1206;border-color:var(--gold)}
+  #count{font-size:12px;color:var(--faint);font-family:var(--mono);margin-left:auto}
+
+  .dom{margin:26px 0 0}
+  .domh{display:flex;align-items:baseline;gap:11px;padding:11px 0 9px;border-bottom:1px solid var(--line2)}
+  .domh .id{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:700}
+  .domh .nm{font-size:15px;font-weight:650}
+  .domh .ct{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:auto}
+  .domh .note{font-size:12.5px;color:var(--faint);font-weight:400}
+
+  .req{display:grid;grid-template-columns:74px 1fr 92px;gap:14px;align-items:start;
+    padding:10px 0;border-bottom:1px solid rgba(36,42,56,.55);font-size:13.5px}
+  .req:last-child{border-bottom:0}
+  .req .rid{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+  .req .rtx{color:#d3d8e4}
+  .req .rtx em{color:var(--faint);font-style:normal;display:block;font-size:12.5px;margin-top:3px}
+  .req .rtx b{color:#fff;font-weight:620}
+  .ph{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;
+    padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap;justify-self:end;margin-top:1px}
+  .ph.P0{background:rgba(224,166,60,.15);color:var(--gold);border:1px solid rgba(224,166,60,.3)}
+  .ph.P1{background:rgba(90,169,230,.14);color:var(--blue);border:1px solid rgba(90,169,230,.3)}
+  .ph.P2{background:rgba(255,122,47,.14);color:var(--fire);border:1px solid rgba(255,122,47,.3)}
+  .ph.P3{background:rgba(169,140,240,.14);color:var(--violet);border:1px solid rgba(169,140,240,.3)}
+  .ph.P4{background:rgba(99,200,138,.13);color:var(--green);border:1px solid rgba(99,200,138,.28)}
+  .ph.P5{background:rgba(255,255,255,.05);color:var(--faint);border:1px solid var(--line2)}
+
+  /* risks */
+  .risk{display:grid;grid-template-columns:34px 1fr;gap:15px;padding:17px 0;border-bottom:1px solid var(--line)}
+  .risk:last-child{border-bottom:0}
+  .rnum{font-family:var(--mono);font-size:12px;font-weight:700;color:#1a1206;background:var(--red);
+    width:26px;height:26px;border-radius:7px;display:grid;place-items:center;margin-top:2px}
+  .risk.med .rnum{background:var(--gold)}
+  .risk.low .rnum{background:var(--faint);color:#0b0d12}
+  .risk h4{margin:0 0 5px;font-size:14.5px;font-weight:650}
+  .risk p{font-size:13.5px;color:var(--dim);margin:0 0 8px}
+  .mit{font-size:13px;color:var(--dim);background:var(--panel);border-left:2px solid var(--green);
+    padding:9px 13px;border-radius:0 7px 7px 0}
+  .mit b{color:var(--green);font-weight:650;font-size:10.5px;letter-spacing:.11em;
+    text-transform:uppercase;display:block;margin-bottom:3px}
+
+  /* milestones */
+  .ms{position:relative;padding:0 0 8px 34px;margin-bottom:8px}
+  .ms:before{content:'';position:absolute;left:9px;top:22px;bottom:-8px;width:1px;background:var(--line2)}
+  .ms:last-child:before{display:none}
+  .ms .dot{position:absolute;left:0;top:5px;width:19px;height:19px;border-radius:50%;
+    background:var(--panel);border:2px solid var(--gold);display:grid;place-items:center;
+    font-family:var(--mono);font-size:9px;font-weight:700;color:var(--gold)}
+  .ms .mh{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;margin-bottom:4px}
+  .ms .mt{font-size:16.5px;font-weight:670;letter-spacing:-.01em}
+  .ms .wk{font-family:var(--mono);font-size:11px;color:var(--faint);
+    border:1px solid var(--line);padding:2px 8px;border-radius:12px}
+  .ms .goal{color:var(--dim);font-size:13.5px;margin:0 0 11px;max-width:800px}
+  .ms .ships{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+  .ms .ships span{background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+    padding:4px 9px;font-size:11.5px;color:var(--dim);font-family:var(--mono)}
+  .exit{background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--gold);
+    border-radius:0 8px 8px 0;padding:11px 14px;font-size:13px;color:var(--dim);max-width:800px}
+  .exit b{color:var(--gold);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    display:block;margin-bottom:4px;font-weight:700}
+
+  .callout{background:linear-gradient(180deg,rgba(224,166,60,.08),rgba(224,166,60,.02));
+    border:1px solid rgba(224,166,60,.28);border-radius:12px;padding:20px 22px;margin:26px 0}
+  .callout h4{margin:0 0 8px;font-size:15px;color:var(--gold);font-weight:670}
+  .callout p{font-size:14px;color:var(--dim);margin:0 0 10px}
+  .callout p:last-child{margin:0}
+
+  ul{margin:0 0 14px;padding-left:19px;color:var(--dim);font-size:14px}
+  li{margin-bottom:7px}
+  li b{color:#fff;font-weight:620}
+  ol{margin:0 0 14px;padding-left:19px;color:var(--dim);font-size:14px}
+
+  .q{border-bottom:1px solid var(--line);padding:15px 0;display:grid;
+    grid-template-columns:64px 1fr;gap:14px;align-items:start}
+  .q:last-child{border-bottom:0}
+  .q .qid{font-family:var(--mono);font-size:11px;color:var(--gold);padding-top:2px;font-weight:700}
+  .q h4{margin:0 0 4px;font-size:14px;font-weight:640}
+  .q p{margin:0;font-size:13.5px;color:var(--dim)}
+  .q .rec{color:var(--green);font-size:12.5px;margin-top:6px}
+  .q .rec b{color:var(--green);font-weight:650}
+
+  footer{padding:40px 0 60px;color:var(--faint);font-size:12.5px}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hin">
+    <div class="eyebrow">Product Requirements Map · v0.1 · working draft</div>
+    <h1>Ember <span class="sub">— an AI-assisted tabletop engine</span></h1>
+    <p class="lede">One authoritative game state. Three surfaces onto it. A dungeon master that
+      can be a person or a model, without the rest of the system knowing the difference.</p>
+    <div class="locked">
+      <div class="lk">Stack <b>Next.js + Supabase</b></div>
+      <div class="lk">Structure <b>One codebase, three surfaces</b></div>
+      <div class="lk">v1 target <b>Private alpha — your own table</b></div>
+      <div class="lk">Money <b>Free beta, billing seam only</b></div>
+      <div class="lk">Rules content <b>SRD 5.2.1 · CC BY 4.0</b></div>
+    </div>
+  </div>
+</header>
+
+<nav><div class="nin">
+  <a href="#shape">Product shape</a>
+  <a href="#who">Who it's for</a>
+  <a href="#spine">Architecture spine</a>
+  <a href="#reqs">Requirements map</a>
+  <a href="#nfr">Non-functional</a>
+  <a href="#risks">Risks</a>
+  <a href="#plan">Ship plan</a>
+  <a href="#open">Open decisions</a>
+  <a href="#week">This week</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ══════════════ PRODUCT SHAPE ══════════════ -->
+<section id="shape">
+  <h2>01 · Product shape</h2>
+  <div class="h2sub">Two products in the market. Three surfaces in the codebase. One engine underneath.</div>
+  <p class="intro">You asked to split this into a DM product and a player product. That split is right
+    <em>commercially</em> — they're bought by different people for different reasons — but it would be
+    a mistake to split the code. During a live session these surfaces must agree on state within
+    milliseconds. Two codebases means two implementations of the hardest part of the system, drifting
+    apart. So: market two, build one, and let the third surface (the table) be the thing nobody else has.</p>
+
+  <div class="grid g3">
+    <div class="card surf dm">
+      <div class="role">Surface 1 · sold as the DM product</div>
+      <h4>The DM Console</h4>
+      <p>Desktop. Narrative control, initiative, hidden monster stats, encounter staging, fog reveal,
+        undo. The only surface that can write authoritative events by hand.</p>
+      <div class="dev">/dm · desktop-first · ~55% of app surface area</div>
+    </div>
+    <div class="card surf play">
+      <div class="role">Surface 2 · sold as the player product</div>
+      <h4>The Player App</h4>
+      <p>Phone and tablet. Character sheet, inventory, spell slots, dice, conditions, push-to-talk.
+        Reads only what that player is allowed to see.</p>
+      <div class="dev">/play · mobile-first · ~30% of app surface area</div>
+    </div>
+    <div class="card surf table">
+      <div class="role">Surface 3 · the differentiator, free</div>
+      <h4>The Table View</h4>
+      <p>Cast to a TV or projector. No chrome, no input. Renders the committed event stream as
+        a living map — spells, fire, destruction, movement.</p>
+      <div class="dev">/table · read-only · ~15% of app surface area</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <h4>The strategic read</h4>
+    <p>The AI-dungeon-master category is already crowded, and almost all of it is a chat window
+      that narrates a story to one person. The shared physical table — four friends, one screen on
+      the wall, a fireball everyone sees at the same moment — is where nobody serious is competing.</p>
+    <p>That argues for the table view being <strong>free and viral</strong> rather than a premium tier.
+      It is the screenshot that sells the product, and it's the surface a stranger sees first.</p>
+  </div>
+</section>
+
+<!-- ══════════════ WHO ══════════════ -->
+<section id="who">
+  <h2>02 · Who it's for</h2>
+  <div class="h2sub">Four jobs, in the order they should be solved.</div>
+  <p class="intro">These are ranked by how well you can validate them yourself. Persona 1 is you,
+    which is why the private alpha is the right v1 — you are the only user you can observe
+    continuously and for free.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="role">Primary · validates fastest</div>
+      <h4>The player with no DM</h4>
+      <p>Loves the idea of the game, has never played, because running one is a real job and nobody
+        in the group volunteers. Needs the AI DM to exist before the product means anything to them.</p>
+      <p><strong>Job:</strong> "Let me actually play tonight, without recruiting a DM."</p>
+    </div>
+    <div class="card">
+      <div class="role">Highest willingness to pay</div>
+      <h4>The overloaded DM</h4>
+      <p>Already runs a table. Spends hours on prep, juggles a laptop, notes, and three tabs during
+        play. Will pay for time back and for the table to look extraordinary.</p>
+      <p><strong>Job:</strong> "Cut my prep, and give my players something to gasp at."</p>
+    </div>
+    <div class="card">
+      <div class="role">Volume, not revenue</div>
+      <h4>The player at an existing table</h4>
+      <p>Wants a sheet that does the arithmetic, dice that can't be fudged, and to stop asking
+        "wait, how much HP do I have?". Arrives via their DM. Should never need to pay.</p>
+      <p><strong>Job:</strong> "Keep my character straight so I can pay attention to the story."</p>
+    </div>
+    <div class="card">
+      <div class="role">Deferred — do not build for this yet</div>
+      <h4>The solo player</h4>
+      <p>One human, AI DM, no group. Tempting because it's the easiest to serve technically, but it
+        puts you head-on against the crowded AI-fiction category and abandons your actual moat.</p>
+      <p><strong>Job:</strong> "Give me a campaign I can play alone."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ SPINE ══════════════ -->
+<section id="spine">
+  <h2>03 · Architecture spine</h2>
+  <div class="h2sub">Everything in the requirements map hangs off this one contract.</div>
+  <p class="intro">The prototype already proved it: nothing calls the renderer directly. The DM —
+    human or model — <em>proposes</em> events, a deterministic rules engine <em>validates</em> them,
+    and only committed events reach any surface. Get this right and every feature below becomes an
+    independent, testable unit of work. Get it wrong and you rewrite the product at month four.</p>
+
+<pre><span class="c">// The one contract. Everything else is a subscriber.</span>
+<span class="k">type</span> GameEvent = {
+  id:        <span class="n">string</span>        <span class="c">// ULID, monotonic — this is also the ordering key</span>
+  session_id:<span class="n">string</span>
+  seq:       <span class="n">number</span>        <span class="c">// gap-free per session; clients detect drops</span>
+  type:      <span class="s">'cast'</span> | <span class="s">'attack'</span> | <span class="s">'damage'</span> | <span class="s">'heal'</span> | <span class="s">'move'</span>
+           | <span class="s">'condition'</span> | <span class="s">'terrain'</span> | <span class="s">'destroy'</span> | <span class="s">'death'</span>
+           | <span class="s">'reveal'</span> | <span class="s">'loot'</span> | <span class="s">'narration'</span> | <span class="s">'round'</span>
+  actor:     <span class="n">string</span> | <span class="n">null</span>
+  payload:   Json          <span class="c">// zod-validated per type, versioned</span>
+  visibility:<span class="s">'public'</span> | <span class="s">'dm_only'</span> | <span class="s">'player:&lt;id&gt;'</span>   <span class="c">// enforced in Postgres RLS, never in the UI</span>
+  proposed_by:<span class="s">'human'</span> | <span class="s">'model'</span>
+  committed_at:<span class="n">timestamptz</span>
+}</pre>
+
+  <h3>Four rules that must never be broken</h3>
+  <ul>
+    <li><b>The model never holds game state.</b> Postgres does. The model receives a serialised
+      snapshot per turn and proposes mutations. HP that lives in a context window will drift within
+      twenty minutes of play.</li>
+    <li><b>Hidden information never leaves the server.</b> If the boss has 140 HP remaining, that
+      number must not be in the player client's memory and hidden with CSS. Enforce with row-level
+      security on <code>visibility</code>. This is the single most common way products like this leak.</li>
+    <li><b>The event log is append-only.</b> Undo is a compensating event, never a delete. This gives
+      you session replay, the recap feature, and debugging, all for free.</li>
+    <li><b>Dice are rolled server-side.</b> Seeded, logged, auditable. A player who suspects the dice
+      are lying stops trusting the product entirely.</li>
+  </ul>
+
+  <h3>Data model, first cut</h3>
+<pre><span class="n">users</span>            id, email, display_name, avatar_url, created_at
+<span class="n">campaigns</span>        id, owner_id, name, ruleset, dm_mode(<span class="s">'human'</span>|<span class="s">'ai'</span>), settings jsonb
+<span class="n">memberships</span>      campaign_id, user_id, role(<span class="s">'dm'</span>|<span class="s">'player'</span>|<span class="s">'spectator'</span>), joined_at
+<span class="n">characters</span>       id, campaign_id, owner_id, name, class, level, sheet jsonb, portrait_url
+<span class="n">sessions</span>         id, campaign_id, status, started_at, ended_at, current_round
+<span class="n">events</span>           id, session_id, seq, type, actor, payload, visibility, proposed_by
+<span class="n">encounters</span>       id, session_id, map_id, initiative jsonb, status
+<span class="n">maps</span>             id, campaign_id, grid_w, grid_h, terrain jsonb, props jsonb, art_url
+<span class="n">tokens</span>           id, encounter_id, ref_type, ref_id, x, z, hidden
+<span class="n">adventures</span>       id, owner_id, title, visibility, scenes jsonb, npcs jsonb
+<span class="n">srd_spells</span>       <span class="c">// seeded, read-only</span>
+<span class="n">srd_monsters</span>     <span class="c">// seeded, read-only</span>
+<span class="n">srd_items</span>        <span class="c">// seeded, read-only</span>
+<span class="n">plans</span>            user_id, tier, limits jsonb   <span class="c">// billing seam, unused in beta</span></pre>
+  <p style="font-size:13.5px;color:var(--faint)">Character sheets are <code>jsonb</code> deliberately.
+    The 5e sheet is deeply nested and will change shape a dozen times before you ship; normalising it
+    now buys nothing and costs a migration every week. Normalise later, if ever.</p>
+</section>
+
+<!-- ══════════════ REQUIREMENTS ══════════════ -->
+<section id="reqs">
+  <h2>04 · Requirements map</h2>
+  <div class="h2sub">Twelve domains. Every requirement tagged to the phase that ships it.</div>
+  <p class="intro">Filter by phase to see exactly what a milestone contains. <strong>P0–P3 is the
+    private alpha.</strong> P4 and P5 exist so you can see what you are deliberately not building yet —
+    that list is as important as the one you are.</p>
+
+  <div class="filters">
+    <span class="fl">Phase</span>
+    <button class="fb on" data-f="all">All</button>
+    <button class="fb" data-f="P0">P0 Foundations</button>
+    <button class="fb" data-f="P1">P1 Digital table</button>
+    <button class="fb" data-f="P2">P2 Table view</button>
+    <button class="fb" data-f="P3">P3 AI DM</button>
+    <button class="fb" data-f="P4">P4 Voice</button>
+    <button class="fb" data-f="P5">P5 Beta</button>
+    <span id="count"></span>
+  </div>
+
+  <div id="doms"></div>
+</section>
+
+<!-- ══════════════ NFR ══════════════ -->
+<section id="nfr">
+  <h2>05 · Non-functional requirements</h2>
+  <div class="h2sub">The constraints that decide whether it feels like a product or a demo.</div>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Latency</h4>
+      <p>Event commit → visible on every surface: <b>&lt;150ms p95</b>. AI DM text response:
+        <b>&lt;2.5s to first token</b>. Voice, when it exists: <b>&lt;2s to first audio</b>.
+        Past roughly three seconds a table stops waiting and starts talking over it.</p>
+    </div>
+    <div class="card">
+      <h4>Table view performance</h4>
+      <p><b>60fps at 1080p</b> on a five-year-old laptop driving a TV. This caps particle counts and
+        rules out per-frame generative anything. Budget it as a hard constraint, not an aspiration.</p>
+    </div>
+    <div class="card">
+      <h4>Reconnection</h4>
+      <p>A phone that sleeps mid-session must resync from <code>last_seq</code> and catch up without a
+        reload. Sessions run four hours; every device will drop at least once.</p>
+    </div>
+    <div class="card">
+      <h4>Information security</h4>
+      <p>RLS policies on every table. Player clients must be provably unable to fetch
+        <code>dm_only</code> rows. Worth an automated test that logs in as a player and asserts the
+        boss's HP is unreachable.</p>
+    </div>
+    <div class="card">
+      <h4>Privacy &amp; jurisdiction</h4>
+      <p>You're in the EU: GDPR applies from user one. Export and delete-account must exist before
+        any public signup. Voice makes this heavier — recordings are personal data, so transcribe
+        and discard rather than store.</p>
+    </div>
+    <div class="card">
+      <h4>Age</h4>
+      <p>This hobby has a lot of minors. An AI generating unbounded narrative for under-13s is a
+        problem you do not want to discover after launch. Age-gate at signup and decide the policy
+        before beta, not after.</p>
+    </div>
+    <div class="card">
+      <h4>Cost per session</h4>
+      <p>A four-hour AI-DM session with continuous narration is a real unit cost. Instrument tokens
+        per session from the first AI commit, or you will price the product blind.</p>
+    </div>
+    <div class="card">
+      <h4>Accessibility</h4>
+      <p>Sheets must be screen-reader navigable and the map must not encode meaning in colour alone —
+        red/green token rings fail for a meaningful share of players. Cheap now, expensive to retrofit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ RISKS ══════════════ -->
+<section id="risks">
+  <h2>06 · Risk register</h2>
+  <div class="h2sub">Ordered by what would actually kill the product.</div>
+
+  <div class="risk">
+    <div class="rnum">1</div>
+    <div>
+      <h4>The AI DM is competent but not <em>fun</em></h4>
+      <p>A model can adjudicate rules and produce serviceable prose. Whether it can hold narrative
+        tension, remember that the innkeeper lied in session two, and react to a player doing something
+        genuinely stupid — that is unproven, and it is the entire value proposition for your primary
+        persona. This is not an engineering risk you can estimate away.</p>
+      <div class="mit"><b>De-risk first</b>Before building any UI for it, run a text-only AI DM
+        through a real two-hour session with real friends over a chat window. If that session is
+        boring, no amount of fireball VFX rescues the product, and you have learned it in a week
+        rather than a quarter.</div>
+    </div>
+  </div>
+
+  <div class="risk">
+    <div class="rnum">2</div>
+    <div>
+      <h4>Scope is three products wearing a trenchcoat</h4>
+      <p>A virtual tabletop, a rules engine, and an AI narrative system are each a multi-year product
+        on their own. Solo, part-time, the honest failure mode here is eleven months of building with
+        nothing playable.</p>
+      <div class="mit"><b>De-risk first</b>Every milestone below has an exit criterion that is
+        "a real session happened." If a milestone can't produce a playable session, it is scoped wrong.
+        Cut features until it can.</div>
+    </div>
+  </div>
+
+  <div class="risk med">
+    <div class="rnum">3</div>
+    <div>
+      <h4>Model proposes illegal events, engine rejects, session stalls</h4>
+      <p>Structured output gets you syntactically valid events. It does not get you <em>legal</em>
+        ones — a spell without a slot, a target out of range, a creature acting twice. Reject-and-retry
+        loops burn seconds, and seconds at a table are visible.</p>
+      <div class="mit"><b>De-risk first</b>Give the model a pre-computed menu of legal actions in
+        its snapshot rather than the raw rules. Constrain the space instead of validating after
+        the fact. Measure the rejection rate from day one and treat it as a headline metric.</div>
+    </div>
+  </div>
+
+  <div class="risk med">
+    <div class="rnum">4</div>
+    <div>
+      <h4>Hidden information leaks to player clients</h4>
+      <p>The single most damaging bug class this product can have. One player noticing the boss's HP
+        in a network tab ends the illusion permanently, and it is trivially easy to do accidentally
+        when you're moving fast.</p>
+      <div class="mit"><b>De-risk first</b>Write the RLS policies and the adversarial test in P0,
+        before there is any hidden data to leak. Retrofitting this is far harder than starting with it.</div>
+    </div>
+  </div>
+
+  <div class="risk med">
+    <div class="rnum">5</div>
+    <div>
+      <h4>Content licensing beyond the SRD</h4>
+      <p>SRD 5.2.1 under CC BY 4.0 covers the rules, and that's genuinely generous. It does not cover
+        the D&amp;D name, the iconic monsters, or published adventures — and importing from D&amp;D
+        Beyond is not a thing you can build on.</p>
+      <div class="mit"><b>De-risk first</b>Ship attribution correctly from the first commit,
+        write original adventures, and run a trademark search on the product name before you buy a
+        domain or print anything.</div>
+    </div>
+  </div>
+
+  <div class="risk low">
+    <div class="rnum">6</div>
+    <div>
+      <h4>Nobody has a group to play with</h4>
+      <p>Even a perfect product fails if a signup arrives alone and bounces. Your primary persona
+        by definition does not have a functioning table.</p>
+      <div class="mit"><b>De-risk later</b>The AI DM is the answer to this — a solo or duo session
+        needs no group. Worth noting that it makes the AI DM a distribution feature, not just a
+        product feature.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PLAN ══════════════ -->
+<section id="plan">
+  <h2>07 · Ship plan</h2>
+  <div class="h2sub">Six milestones to a private alpha. Every one ends in a real session.</div>
+  <p class="intro">Week estimates assume solo, part-time (call it 12–15 focused hours a week), with
+    heavy AI assistance on implementation. They are deliberately not padded — treat them as the
+    optimistic case and expect roughly 1.4× in practice.</p>
+
+  <div class="ms">
+    <div class="dot">P0</div>
+    <div class="mh"><span class="mt">Foundations</span><span class="wk">~2 weeks</span></div>
+    <p class="goal">Accounts, campaigns, and the event spine. No game yet — but the contract that
+      every later milestone depends on is in place and tested.</p>
+    <div class="ships"><span>marketing homepage</span><span>signup / login</span><span>campaign CRUD</span><span>invite + join</span><span>schema + RLS</span><span>event bus over Realtime</span><span>server-side dice</span></div>
+    <div class="exit"><b>Exit criterion</b>Two browsers, two accounts, one campaign. One clicks a
+      button, the other sees the event land in under 150ms — and a player account provably cannot
+      read a <code>dm_only</code> row.</div>
+  </div>
+
+  <div class="ms">
+    <div class="dot">P1</div>
+    <div class="mh"><span class="mt">The digital table</span><span class="wk">~4 weeks</span></div>
+    <p class="goal">Enough to run a real combat with a human DM. This is the milestone that makes
+      the product useful even if the AI never works.</p>
+    <div class="ships"><span>character sheets</span><span>SRD seed data</span><span>inventory</span><span>spell slots</span><span>dice UI</span><span>initiative tracker</span><span>grid map + tokens</span><span>DM console</span><span>undo</span></div>
+    <div class="exit"><b>Exit criterion</b>You DM a one-hour combat encounter for three real people
+      on their own phones, start to finish, without touching a spreadsheet or a paper sheet.</div>
+  </div>
+
+  <div class="ms">
+    <div class="dot">P2</div>
+    <div class="mh"><span class="mt">The table view</span><span class="wk">~2 weeks</span></div>
+    <p class="goal">Port the prototype onto real session data. Shortest milestone, largest visible
+      payoff — this is the one that produces your marketing material.</p>
+    <div class="ships"><span>/table renderer</span><span>~15 spell VFX</span><span>terrain effects</span><span>destructibles</span><span>token movement</span><span>cast-to-TV</span></div>
+    <div class="exit"><b>Exit criterion</b>A player casts fireball from their phone and it detonates
+      on the TV, driven entirely by committed events. Record it — that clip is your landing page.</div>
+  </div>
+
+  <div class="ms">
+    <div class="dot">P3</div>
+    <div class="mh"><span class="mt">The AI DM</span><span class="wk">~4 weeks</span></div>
+    <p class="goal">Swap the human driver for a model behind the identical interface. Text only —
+      no voice, deliberately.</p>
+    <div class="ships"><span>snapshot serialiser</span><span>legal-action menu</span><span>structured event output</span><span>repair loop</span><span>campaign memory</span><span>one authored adventure</span><span>safety tools</span><span>cost telemetry</span></div>
+    <div class="exit"><b>Exit criterion</b>A two-hour session with no human DM that the players
+      wanted to continue. That last clause is the actual test, and only real players can answer it.</div>
+  </div>
+
+  <div class="ms">
+    <div class="dot">P4</div>
+    <div class="mh"><span class="mt">Voice</span><span class="wk">~3 weeks · after alpha</span></div>
+    <p class="goal">Push-to-talk per player, streaming narration out. Deferred past alpha because
+      it multiplies cost and latency risk onto a loop that must already be proven fun.</p>
+    <div class="ships"><span>push-to-talk</span><span>STT</span><span>intent gate</span><span>streaming TTS</span><span>NPC voices</span><span>text fallback</span></div>
+    <div class="exit"><b>Exit criterion</b>A full session where nobody typed, and the DM never
+      interrupted the pizza conversation.</div>
+  </div>
+
+  <div class="ms">
+    <div class="dot">P5</div>
+    <div class="mh"><span class="mt">Beta hardening</span><span class="wk">~3 weeks</span></div>
+    <p class="goal">Everything between "works for me" and "works for strangers."</p>
+    <div class="ships"><span>onboarding</span><span>empty states</span><span>GDPR export/delete</span><span>age gate</span><span>billing seam</span><span>observability</span><span>adventure editor</span><span>support surface</span></div>
+    <div class="exit"><b>Exit criterion</b>Five tables you have never met run a full session with
+      no intervention from you.</div>
+  </div>
+
+  <div class="callout">
+    <h4>The sequencing argument, stated plainly</h4>
+    <p>P1 before P3 looks wrong for you personally — you don't have a DM, so a human-DM tabletop
+      doesn't let you play. Build it anyway. P1 is where the rules engine, the sheets, and the
+      event vocabulary get built, and <strong>the AI DM in P3 is only as good as the event vocabulary
+      it can speak.</strong> Trying to build the model driver first means inventing that vocabulary
+      while also debugging a model, and you will not be able to tell which one is broken.</p>
+    <p>The cheap way to have it both ways: run the risk-1 experiment — an AI DM in a plain chat
+      window with no product around it — during P0, in parallel. It costs a weekend and answers
+      the question that decides everything else.</p>
+  </div>
+</section>
+
+<!-- ══════════════ OPEN ══════════════ -->
+<section id="open">
+  <h2>08 · Open decisions</h2>
+  <div class="h2sub">Things I could not decide for you, roughly in the order they become blocking.</div>
+
+  <div class="q"><div class="qid">OQ-1</div><div>
+    <h4>Product name and domain</h4>
+    <p>"Ember" is a working title I picked to match the aesthetic — it is not researched. Needs a
+      trademark search and a domain before anything is printed or bought.</p>
+    <div class="rec"><b>Blocking:</b> before the marketing homepage goes public. Not before you build it.</div>
+  </div></div>
+
+  <div class="q"><div class="qid">OQ-2</div><div>
+    <h4>Which ruleset, exactly</h4>
+    <p>SRD 5.2.1 is the obvious default and the licensing is clean. But a lighter system means a far
+      smaller rules engine, and the AI DM adjudicates a simpler game more reliably.</p>
+    <div class="rec"><b>Recommendation:</b> SRD 5.2.1 — the audience you're targeting wants this
+      specific game, and a lighter system solves your engineering problem by giving up your market.</div>
+  </div></div>
+
+  <div class="q"><div class="qid">OQ-3</div><div>
+    <h4>How much of the 5e ruleset does the engine actually implement</h4>
+    <p>Full automation of 5e is a multi-year project. Most successful tabletops automate the common
+      80% and let the DM override the rest.</p>
+    <div class="rec"><b>Recommendation:</b> attacks, saves, damage types, conditions and spell slots
+      automated; everything else is a DM override button. Ship the override before the automation.</div>
+  </div></div>
+
+  <div class="q"><div class="qid">OQ-4</div><div>
+    <h4>Map art: authored, uploaded, or generated</h4>
+    <p>Generated maps are a strong demo and a weak product — inconsistent, slow, hard to make tactically
+      legible. Uploading is what real DMs already do.</p>
+    <div class="rec"><b>Recommendation:</b> upload + a small authored set for alpha. Generation is a
+      P5+ experiment, pre-generated and cached, never live.</div>
+  </div></div>
+
+  <div class="q"><div class="qid">OQ-5</div><div>
+    <h4>Does the table view need to work without the rest of the product</h4>
+    <p>A standalone table view usable by DMs on other platforms would be a genuine wedge — it's the
+      part nobody else has, and it needs almost none of your account system.</p>
+    <div class="rec"><b>Worth considering:</b> a free, no-signup table view could be your entire
+      distribution strategy. It also doubles as the thing you post publicly before the product exists.</div>
+  </div></div>
+
+  <div class="q"><div class="qid">OQ-6</div><div>
+    <h4>Age policy</h4>
+    <p>Needs a decision before any public signup, and it constrains the AI DM's content boundaries.</p>
+    <div class="rec"><b>Recommendation:</b> 13+ at signup for beta, with content boundaries enforced
+      in the DM system prompt and a DM-configurable safety tool set per campaign.</div>
+  </div></div>
+</section>
+
+<!-- ══════════════ WEEK ══════════════ -->
+<section id="week">
+  <h2>09 · This week</h2>
+  <div class="h2sub">Five concrete things, in order.</div>
+  <ol>
+    <li><b>Stand up the scaffold.</b> Next.js + Supabase, homepage, signup, login, route shells for
+      <code>/dm</code>, <code>/play</code>, <code>/table</code>. Delivered alongside this document.</li>
+    <li><b>Write the schema and the RLS policies together.</b> Not the schema now and security later —
+      the hidden-information rule is far cheaper to build in than to retrofit.</li>
+    <li><b>Get one event end-to-end.</b> Two browsers, a button, a Realtime subscription, an event
+      landing on both. Everything in P1 is a variation on this.</li>
+    <li><b>Run the risk-1 experiment.</b> One evening, a chat window, a model prompted as a DM,
+      two friends. No product. Answer the only question that matters before you spend a quarter on it.</li>
+    <li><b>Decide OQ-2 and OQ-6.</b> Both are cheap to decide now and expensive to change at P3.</li>
+  </ol>
+
+  <div class="callout">
+    <h4>What I'd watch out for</h4>
+    <p>The most likely way this goes wrong is not technical. It's that the table view is the most
+      fun part to build, and it will keep pulling you back for one more spell effect while the
+      unglamorous work — sheets, permissions, reconnection — is what actually determines whether
+      anyone can play. The VFX library is finished when fifteen spells look good, not fifty.</p>
+  </div>
+</section>
+
+<footer>
+  <b>Ember — Product Requirements Map v0.1.</b> Working draft, generated as a starting point for
+  iteration rather than a specification to build against verbatim. Estimates are optimistic by
+  construction. Rules content assumes SRD 5.2.1 under CC BY 4.0, which requires attribution in the
+  shipped product.
+</footer>
+
+</div>
+
+<script>
+const DOMAINS = [
+ {id:'IDN', name:'Identity & accounts', note:'Supabase Auth carries most of this', reqs:[
+  ['IDN-01','Email + password signup with verification','P0'],
+  ['IDN-02','Login, logout, session persistence across devices','P0'],
+  ['IDN-03','Password reset by email','P0'],
+  ['IDN-04','OAuth: Google and <b>Discord</b><em>Discord is where this hobby organises — it is the highest-value provider here by a wide margin, not an afterthought</em>','P0'],
+  ['IDN-05','Profile: display name, avatar, timezone','P0'],
+  ['IDN-06','Age gate at signup','P5'],
+  ['IDN-07','GDPR data export','P5'],
+  ['IDN-08','Account deletion with cascade','P5'],
+  ['IDN-09','Email preferences and unsubscribe','P5'],
+ ]},
+ {id:'CMP', name:'Campaigns & tables', note:'the container everything else lives in', reqs:[
+  ['CMP-01','Create campaign: name, ruleset, DM mode (human or AI)','P0'],
+  ['CMP-02','Campaign settings and house rules','P1'],
+  ['CMP-03','Invite by shareable link or short join code','P0'],
+  ['CMP-04','Join flow for a user who has no account yet','P0'],
+  ['CMP-05','Roles: DM, player, spectator — enforced in RLS','P0'],
+  ['CMP-06','Remove or transfer a member','P1'],
+  ['CMP-07','Session lifecycle: scheduled → live → ended','P0'],
+  ['CMP-08','Session history and per-session recap','P3'],
+  ['CMP-09','Campaign archive and delete','P5'],
+  ['CMP-10','Scheduling and reminders','P5'],
+ ]},
+ {id:'CHR', name:'Characters', note:'the player product, essentially', reqs:[
+  ['CHR-01','Guided character creation from SRD content','P1'],
+  ['CHR-02','Ability scores, modifiers, proficiency bonus','P1'],
+  ['CHR-03','Skills, saving throws, passive scores','P1'],
+  ['CHR-04','HP, temp HP, hit dice, death saves','P1'],
+  ['CHR-05','Spells known and prepared, slots by level','P1'],
+  ['CHR-06','Inventory, currency, equip/unequip','P1'],
+  ['CHR-07','Attunement slots and magic item effects','P2'],
+  ['CHR-08','Conditions and exhaustion, applied by event','P1'],
+  ['CHR-09','Level up','P2'],
+  ['CHR-10','Portrait upload, or a generated one','P2'],
+  ['CHR-11','Sheet subscribes to the event stream — never polls','P1'],
+  ['CHR-12','Character export and import as JSON','P5'],
+  ['CHR-13','Encumbrance','P5'],
+  ['CHR-14','Multiclassing<em>Genuinely hard in 5e; a common and defensible thing to never support</em>','P5'],
+ ]},
+ {id:'SRD', name:'Rules content', note:'seeded once, read-only, CC BY 4.0', reqs:[
+  ['SRD-01','Ingest and seed SRD spells (~360)','P1'],
+  ['SRD-02','Ingest and seed SRD monsters','P1'],
+  ['SRD-03','Ingest and seed SRD items and equipment','P1'],
+  ['SRD-04','Conditions, damage types, resistances','P1'],
+  ['SRD-05','Classes, species, backgrounds, features','P1'],
+  ['SRD-06','Searchable in-app compendium','P2'],
+  ['SRD-07','Attribution notice shipped in-product','P0'],
+  ['SRD-08','Homebrew monsters, items, spells','P5'],
+ ]},
+ {id:'ENG', name:'Rules engine & dice', note:'the referee — deterministic, server-side', reqs:[
+  ['ENG-01','Server-authoritative seeded dice with audit log','P0'],
+  ['ENG-02','Attack resolution: to-hit, AC, crits','P1'],
+  ['ENG-03','Saving throws with DC calculation','P1'],
+  ['ENG-04','Damage application: types, resistance, vulnerability, immunity','P1'],
+  ['ENG-05','Advantage and disadvantage','P1'],
+  ['ENG-06','Area-of-effect targeting and templates','P1'],
+  ['ENG-07','Range and line-of-sight validation','P2'],
+  ['ENG-08','Resource consumption: slots, uses, actions','P1'],
+  ['ENG-09','Concentration tracking and breaking','P2'],
+  ['ENG-10','<b>DM override on every automated ruling</b><em>Ship the override before the automation — it is what makes an incomplete engine usable</em>','P1'],
+  ['ENG-11','Reactions and opportunity attacks','P5'],
+ ]},
+ {id:'EVT', name:'Event bus & session engine', note:'the spine — build first, change never', reqs:[
+  ['EVT-01','Typed event schema with zod validation per type','P0'],
+  ['EVT-02','Append-only event log, gap-free sequence per session','P0'],
+  ['EVT-03','Realtime fan-out to all subscribed surfaces','P0'],
+  ['EVT-04','Visibility enforcement in RLS, not in the client','P0'],
+  ['EVT-05','Validation layer between proposal and commit','P0'],
+  ['EVT-06','Undo as a compensating event','P1'],
+  ['EVT-07','Reconnect and resync from last_seq','P1'],
+  ['EVT-08','Optimistic UI with server reconciliation','P2'],
+  ['EVT-09','Session replay from the log','P3'],
+  ['EVT-10','Event schema versioning and migration','P5'],
+ ]},
+ {id:'MAP', name:'Maps & encounters', note:'the tactical layer', reqs:[
+  ['MAP-01','Grid map with configurable dimensions','P1'],
+  ['MAP-02','Token placement and drag movement','P1'],
+  ['MAP-03','Distance and range measurement','P1'],
+  ['MAP-04','Initiative tracker with turn advance','P1'],
+  ['MAP-05','Walls, difficult terrain, props','P1'],
+  ['MAP-06','Map upload with grid alignment','P2'],
+  ['MAP-07','Fog of war and DM reveal','P2'],
+  ['MAP-08','Per-player vision and light sources<em>Expensive and easy to underestimate — a full milestone on its own if done properly</em>','P5'],
+  ['MAP-09','Encounter staging and templates','P2'],
+  ['MAP-10','Destructible props','P2'],
+ ]},
+ {id:'TBL', name:'Table view', note:'read-only, the differentiator', reqs:[
+  ['TBL-01','Read-only renderer driven purely by committed events','P2'],
+  ['TBL-02','Spell VFX library — 15 spells for alpha','P2'],
+  ['TBL-03','Persistent terrain effects with duration','P2'],
+  ['TBL-04','Destruction and debris','P2'],
+  ['TBL-05','Damage and healing floaters','P2'],
+  ['TBL-06','Token movement and death animation','P2'],
+  ['TBL-07','Cinematic mode — no chrome, cast to TV','P2'],
+  ['TBL-08','Camera control and auto-focus on the acting token','P2'],
+  ['TBL-09','Ambient audio and music cues','P5'],
+  ['TBL-10','Spectator link for a remote viewer','P5'],
+ ]},
+ {id:'AID', name:'AI dungeon master', note:'highest risk, highest value', reqs:[
+  ['AID-01','Serialise game state to a compact model snapshot','P3'],
+  ['AID-02','<b>Pre-computed menu of legal actions in the snapshot</b><em>Constrain the space rather than validating after the fact — this is the main defence against stalls</em>','P3'],
+  ['AID-03','Structured output: narration + typed events under a JSON schema','P3'],
+  ['AID-04','Repair loop for rejected proposals, bounded retries','P3'],
+  ['AID-05','Campaign memory across sessions<em>The genuinely unsolved part — what the innkeeper said in session two must still be true in session nine</em>','P3'],
+  ['AID-06','Scene and pacing management','P3'],
+  ['AID-07','NPC personality and consistent voice','P3'],
+  ['AID-08','Safety tools: lines, veils, and a pause control','P3'],
+  ['AID-09','Two-tier model routing for latency and cost','P3'],
+  ['AID-10','Per-session token and cost telemetry','P3'],
+  ['AID-11','DM-configurable tone and content boundaries','P3'],
+  ['AID-12','AI assistance <em>for</em> a human DM — improvised NPCs, name generation','P5'],
+ ]},
+ {id:'VOX', name:'Voice', note:'deferred past alpha on purpose', reqs:[
+  ['VOX-01','Push-to-talk on the player device<em>Solves speaker identification for free — the reason not to use a room mic</em>','P4'],
+  ['VOX-02','Speech to text per player','P4'],
+  ['VOX-03','Intent gate: is this a game action or table talk','P4'],
+  ['VOX-04','Streaming TTS narration','P4'],
+  ['VOX-05','Distinct NPC voices','P4'],
+  ['VOX-06','Text fallback at all times','P4'],
+  ['VOX-07','No audio retention — transcribe and discard','P4'],
+ ]},
+ {id:'STY', name:'Story & adventures', note:'content pipeline', reqs:[
+  ['STY-01','Adventure data format: scenes, beats, NPCs, triggers','P3'],
+  ['STY-02','One authored adventure for alpha','P3'],
+  ['STY-03','Custom storyline: upload a document, structure it','P5'],
+  ['STY-04','Adventure editor','P5'],
+  ['STY-05','Community adventure sharing','P5'],
+ ]},
+ {id:'OPS', name:'Platform & operations', note:'boring, and it decides whether you survive beta', reqs:[
+  ['OPS-01','Marketing homepage','P0'],
+  ['OPS-02','Error tracking and structured logging','P0'],
+  ['OPS-03','CI: typecheck, lint, build on every push','P0'],
+  ['OPS-04','Staging environment','P1'],
+  ['OPS-05','Automated RLS leak test<em>Log in as a player, assert the boss HP is unreachable</em>','P0'],
+  ['OPS-06','Product analytics on the core loop','P3'],
+  ['OPS-07','Billing seam: plan field and limits, no payment','P5'],
+  ['OPS-08','Onboarding and empty states','P5'],
+  ['OPS-09','Support surface and feedback capture','P5'],
+  ['OPS-10','Status page and incident comms','P5'],
+ ]},
+];
+
+const host = document.getElementById('doms');
+DOMAINS.forEach(d=>{
+  const wrap = document.createElement('div');
+  wrap.className = 'dom';
+  wrap.innerHTML = `<div class="domh">
+      <span class="id">${d.id}</span><span class="nm">${d.name}</span>
+      <span class="note">— ${d.note}</span>
+      <span class="ct" data-ct>${d.reqs.length}</span></div>`
+    + d.reqs.map(([id,tx,ph])=>
+      `<div class="req" data-ph="${ph}">
+         <span class="rid">${id}</span>
+         <span class="rtx">${tx}</span>
+         <span class="ph ${ph}">${ph}</span>
+       </div>`).join('');
+  host.appendChild(wrap);
+});
+
+const countEl = document.getElementById('count');
+function apply(f){
+  let shown = 0;
+  document.querySelectorAll('.dom').forEach(dom=>{
+    let n = 0;
+    dom.querySelectorAll('.req').forEach(r=>{
+      const ok = f==='all' || r.dataset.ph===f;
+      r.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    dom.style.display = n ? '' : 'none';
+    dom.querySelector('[data-ct]').textContent = n;
+    shown += n;
+  });
+  countEl.textContent = `${shown} requirements`;
+}
+document.querySelectorAll('.fb').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.fb').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    apply(b.dataset.f);
+  };
+});
+apply('all');
+</script>
+</body>
+</html>

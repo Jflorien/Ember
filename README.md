@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ember
 
-## Getting Started
+Ember is an AI-assisted tabletop engine for D&D. A single authoritative game
+state — an append-only log of `GameEvent`s validated by a rules engine — feeds
+three surfaces: a console for the DM, a sheet for every player, and a living
+map for the TV. This repo is the product scaffold: marketing site, auth, and
+the route shells for those three surfaces, wired to Supabase.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 15 (App Router, TypeScript, `src/` dir)
+- Tailwind CSS v3 (hand-written design system, no component library)
+- Supabase (`@supabase/supabase-js` + `@supabase/ssr`) for auth and Postgres
+
+## Setup
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com).
+2. **Run the migration** against it — either paste
+   `supabase/migrations/0001_init.sql` into the SQL editor, or, with the
+   [Supabase CLI](https://supabase.com/docs/guides/cli) linked to your
+   project:
+
+   ```bash
+   supabase db push
+   ```
+
+3. **Enable OAuth providers** you want to offer (Discord, Google) under
+   Authentication → Providers, and add `<your-site-url>/auth/callback` as a
+   redirect URL for each.
+4. **Set environment variables** — copy `.env.example` to `.env.local` and
+   fill in your project's URL and anon key from Project Settings → API:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+5. **Install and run**:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+`npm run build` and `npm run lint` both work with **no** `.env` file present
+— Supabase env vars are read lazily and only throw when a Supabase client is
+actually constructed at request time, not at build time.
+
+## Route map
+
+| Route                    | Description                                            | Auth        |
+| ------------------------- | ------------------------------------------------------- | ----------- |
+| `/`                        | Marketing homepage                                       | Public      |
+| `/login`                   | Email/password + Discord/Google OAuth login              | Public      |
+| `/login/forgot-password`   | Password reset request                                   | Public      |
+| `/signup`                  | Account creation                                          | Public      |
+| `/auth/callback`           | OAuth / magic-link code exchange (route handler)          | —           |
+| `/dm`                      | DM console shell                                          | Required    |
+| `/play`                    | Player app shell                                          | Required    |
+| `/table`                   | Chrome-free table view (TV)                                | Public      |
+
+Root `middleware.ts` refreshes the Supabase session on every request and
+redirects unauthenticated users away from `/dm` and `/play` to `/login`.
+
+## Database
+
+`supabase/migrations/0001_init.sql` creates `users`, `campaigns`,
+`memberships`, `characters`, `sessions`, and `events`, with row-level
+security on every table. The key rule: `events.visibility` controls who can
+read a row —
+
+- `public` — any member of the event's campaign
+- `dm_only` — the campaign's DM only
+- `player:<uuid>` — the DM and that one player only
+
+See the comment block at the top of the migration for the full rationale.
+`events` also has a unique constraint + index on `(session_id, seq)` so
+event ordering within a session is enforced at the database level.
+
+## What's not built yet
+
+- The actual DM console, player sheet, and table-view UI — those routes are
+  placeholder shells describing what will live there.
+- The rules engine / event pipeline itself (proposing, validating, and
+  committing `GameEvent`s) — the homepage documents the design, but no
+  engine code exists yet.
+- Realtime subscriptions to `events`/`sessions` (Supabase Realtime channels)
+  are not wired up.
+- Campaign/character CRUD UI — the schema and RLS exist, but there's no UI
+  to create a campaign, invite players, or build a character sheet.
+- The AI dungeon master itself.
+- `/login/forgot-password` calls a real `resetPasswordForEmail` server
+  action, but there's no corresponding "set new password" page for the
+  callback to land on yet.
+- Email capture on the homepage CTA is intentionally non-functional (styled
+  only, per spec) — it doesn't post anywhere.
+- No automated tests.
+
+## Fonts
+
+The design system specifies **Cinzel** (display), **Inter** (UI) and **JetBrains Mono** (data).
+They are wired as CSS variables `--f-display` / `--f-ui` / `--f-mono` in `globals.css` and
+currently resolve to system fallbacks, because the build sandbox has no access to
+`fonts.googleapis.com`.
+
+To switch to the real faces on your machine, add to `src/app/layout.tsx`:
+
+```ts
+import { Cinzel, Inter, JetBrains_Mono } from "next/font/google";
+
+const display = Cinzel({ subsets: ["latin"], weight: ["700"], variable: "--font-display" });
+const ui      = Inter({ subsets: ["latin"], weight: ["400","600","700"], variable: "--font-ui" });
+const mono    = JetBrains_Mono({ subsets: ["latin"], weight: ["500","600","700"], variable: "--font-mono" });
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Put `${display.variable} ${ui.variable} ${mono.variable}` on `<html>`, then in `globals.css`
+point the tokens at them:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```css
+--f-display: var(--font-display), "Iowan Old Style", Georgia, serif;
+--f-ui:      var(--font-ui), -apple-system, "Segoe UI", Roboto, sans-serif;
+--f-mono:    var(--font-mono), ui-monospace, Menlo, monospace;
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Nothing else needs to change — every component reads the tokens, not the families.
 
-## Learn More
+## A note on AGENTS.md / CLAUDE.md
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`create-next-app` generates an `AGENTS.md` (aliased by `CLAUDE.md`) telling coding agents to read
+`node_modules/next/dist/docs/` before writing code. That directory does not exist in this install,
+so the instruction is inert. Delete both files if you don't want agents acting on them.
