@@ -393,6 +393,28 @@ create policy "events_insert_dm_only"
 -- so both are denied by default under RLS.
 
 -- ---------------------------------------------------------------------------
+-- Table privileges for `authenticated`
+-- ---------------------------------------------------------------------------
+-- RLS policies only filter rows an operation is already allowed to touch —
+-- they don't grant the operation itself. A hosted Supabase project auto-
+-- grants base table privileges to anon/authenticated at provisioning time,
+-- outside of any migration, which is *why* this was missing here originally
+-- and only surfaced once this schema was applied anywhere else (a local
+-- `supabase start` instance, in CI): every query failed with "permission
+-- denied for table x" despite correct RLS policies. Granted explicitly here
+-- so the migration is correct on its own, not dependent on how the project
+-- was provisioned.
+--
+-- events has no UPDATE/DELETE grant, on top of having no UPDATE/DELETE
+-- policy — append-only is enforced twice, not just by omitting the policy.
+grant select, insert, update on public.users to authenticated;
+grant select, insert, update, delete on public.campaigns to authenticated;
+grant select, insert, update, delete on public.memberships to authenticated;
+grant select, insert, update, delete on public.characters to authenticated;
+grant select, insert, update, delete on public.sessions to authenticated;
+grant select, insert on public.events to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- updated_at-less by design: campaigns/characters/sessions/events all use
 -- created_at/committed_at only, matching the append-oriented event model.
 -- ---------------------------------------------------------------------------
