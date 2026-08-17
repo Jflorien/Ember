@@ -13,6 +13,7 @@ import { CharacterHp } from "@/components/character-hp";
 import { CharacterConditions } from "@/components/character-conditions";
 import { PartyStatusStrip } from "@/components/party-status-strip";
 import { RoundBadge } from "@/components/round-badge";
+import { PlayerActionPanel } from "@/components/player-action-panel";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -111,6 +112,15 @@ async function PlayerSheetBody({
       <div>
         <div className="runic mb-3">Party</div>
         <PartyStatusStrip sessionId={sessionId} members={members} />
+      </div>
+
+      <div>
+        <div className="runic mb-3">Your actions</div>
+        <PlayerActionPanel
+          sessionId={sessionId}
+          characterId={character.characterId}
+          members={members}
+        />
       </div>
     </>
   );

@@ -78,6 +78,12 @@ See the comment block at the top of the migration for the full rationale.
 `events` also has a unique constraint + index on `(session_id, seq)` so
 event ordering within a session is enforced at the database level.
 
+Writes are RLS-gated too: the DM can insert anything, and — since
+`0006_player_self_action_events.sql` — a non-DM campaign member can
+additionally insert an `attack` event where they own the attacker, or a
+`damage`/`heal`/`condition` event where they own the target. Nothing else,
+and never on behalf of a character they don't own.
+
 ## What's not built yet
 
 - The real DM console, player sheet, and table-view UI — `/dm`, `/play`, and

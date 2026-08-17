@@ -76,8 +76,8 @@ docs/                   open these in a browser
 
 | Route    | Device  | Role |
 |----------|---------|------|
-| `/dm`    | desktop | DM console. The only surface that writes authoritative events by hand. |
-| `/play`  | phone   | Character sheet, inventory, slots, dice. Reads only what that player may see. |
+| `/dm`    | desktop | DM console. Can write any event by hand — the only surface with no ownership restriction. |
+| `/play`  | phone   | Character sheet, inventory, slots, dice. Can propose events *scoped to the player's own character* (attack with it, self-report damage/heal/conditions to it); reads everything else it may see. |
 | `/table` | TV      | Read-only render of committed events. No input, no hover, no chrome. |
 
 Marketed as two products (DM tool, player app). Built as one codebase — during a live session
@@ -131,8 +131,8 @@ reads the tokens, so nothing else changes.
 
 ## Database
 
-`supabase/migrations/0001_init.sql`. Tables: `users`, `campaigns`, `memberships`, `characters`,
-`sessions`, `events`.
+`supabase/migrations/0001_init.sql` onward. Tables: `users`, `campaigns`, `memberships`,
+`characters`, `sessions`, `events`.
 
 RLS is the security boundary, not the UI:
 
@@ -140,9 +140,15 @@ RLS is the security boundary, not the UI:
 - `events.visibility = 'dm_only'` → readable only by that campaign's DM.
 - `events.visibility = 'player:<uuid>'` → readable by the DM and that one player.
 - `events` has no UPDATE/DELETE policy — append-only is enforced by the database.
+- `events` INSERT: the DM can always write (`events_insert_dm_only`). A non-DM campaign member can
+  additionally write an `attack` event where they own the attacker, or a `damage`/`heal`/
+  `condition` event where they own the target — nothing else, and never another character's
+  (`events_insert_player_self_action`, `0006_player_self_action_events.sql`). Multiple permissive
+  policies on the same operation combine with OR, so this widens who can write without touching
+  the DM's original policy.
 - Characters: readable by all campaign members, writable by owner or DM.
 
-RLS helpers (`is_campaign_member`, `is_campaign_dm`, `session_campaign_id`) are
+RLS helpers (`is_campaign_member`, `is_campaign_dm`, `session_campaign_id`, `owns_character`) are
 `security definer` with `set search_path = public`. **Keep them that way** — without it, a
 membership policy that queries `memberships` recurses infinitely. This is the most common
 Supabase footgun and it is already handled.
@@ -228,6 +234,26 @@ one character's turn. Verified live across all three surfaces at once (two tabs 
 side): advancing from the DM console propagated to both `/table` and `/play` over Realtime with
 no refresh, through a full start 1 → end 1 → start 2 cycle.
 
+`/play` is no longer read-only — the first crack in "the DM console is the only surface that
+writes," on request, because the point of every device subscribing to the same stream is that
+every device can act on it, not just watch it. `0006_player_self_action_events.sql` adds a second,
+additive INSERT policy (`events_insert_player_self_action`) alongside the DM's: a non-DM campaign
+member may now insert an `attack` event where they own the attacker (target can be anyone — that's
+the point of attacking), or a `damage`/`heal`/`condition` event where they own the *target*
+("this happened to me," not "I did this to someone else"). Two new helpers back it —
+`owns_character` (mirrors `is_campaign_dm`'s security-definer shape) and `payload_uuid` (reads a
+uuid out of a payload without raising on a bad or missing key, since a hard error inside an RLS
+check would surface as a confusing insert failure). `PlayerActionPanel`
+(`src/components/player-action-panel.tsx`, `/play` only) reuses the exact same `AttackComposer`/
+`DamageHealComposer`/`ConditionComposer` the DM console uses — attackerId and the self-report
+targetId are just fixed to the player's own character instead of coming from a picker; no new
+propose\*Event logic was needed, since RLS was already the enforcement boundary, not the app layer.
+Verified three ways: an automated CI test (`supabase/tests/player_self_action_test.sql`) asserting
+both the accept and reject paths; the same test run live against the real project with the
+simulated-second-user technique, rolled back; and a real attack plus a real self-reported damage
+event submitted through the actual `/play` UI, both confirmed by reading the committed rows back
+and watching `/table` render them live over Realtime.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks a spell's components or whether a character has the
 resource it's spending, and a hit still requires a manual follow-up damage event rather than
@@ -286,6 +312,14 @@ Notion's `DM Console Panels` / player UI spec), anything AI.
     on the same real campaign): clicking through a full start 1 → end 1 → start 2 cycle in the DM
     console propagated to both read-only surfaces over Realtime with no refresh, matching the
     exact number and phase at every step.
+11. ~~Player self-action.~~ Done, on request — "the entire point is also to have the devices
+    hearing what's being told and acting accordingly." `/play` gained a real write path: a player
+    can now attack with their own character or self-report damage/heal/conditions to it, enforced
+    at the RLS layer (`0006_player_self_action_events.sql`) so the boundary holds no matter what
+    UI calls it. Verified with the same simulated-second-user technique as the RLS leak test
+    (own-character insert accepted, other-character insert rejected, both live against the real
+    project and rolled back), plus a real attack and a real self-reported damage event submitted
+    through the actual `/play` UI and watched propagate to `/table` live.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users
