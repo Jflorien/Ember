@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
+import { getOrCreateDemoSession } from "@/app/dm/actions";
+import { EventComposer } from "@/components/event-composer";
+import { LiveEventFeed } from "@/components/live-event-feed";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -9,6 +12,8 @@ export default async function DmConsolePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { sessionId } = await getOrCreateDemoSession();
 
   return (
     <main className="flex min-h-screen flex-col bg-basalt-950">
@@ -21,16 +26,28 @@ export default async function DmConsolePage() {
         </form>
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-        <span className="runic hot">Coming soon</span>
-        <h1 className="font-display mt-4 max-w-xl text-3xl font-bold tracking-tight text-ash-050">
-          Narrative control, initiative, hidden stats, and undo.
-        </h1>
-        <p className="mt-4 max-w-lg text-ash-300">
-          This is where the DM proposes events — narration, rolls, damage,
-          and scene changes — and watches the rules engine validate and
-          commit them to the shared session state in real time.
-        </p>
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
+        <div>
+          <span className="runic hot">Event console — early proof</span>
+          <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
+            Propose an event. Watch it commit.
+          </h1>
+          <p className="mt-2 text-sm text-ash-300">
+            Every narration you send here is validated against the same
+            zod schema the rules engine will use, committed to{" "}
+            <code className="font-mono text-ash-100">events</code>, and
+            fanned out over Realtime — this is what{" "}
+            <code className="font-mono text-ash-100">/table</code> is
+            reading live, in another tab or another browser.
+          </p>
+        </div>
+
+        <EventComposer sessionId={sessionId} />
+
+        <div>
+          <div className="runic mb-3">Session log</div>
+          <LiveEventFeed sessionId={sessionId} />
+        </div>
       </div>
     </main>
   );

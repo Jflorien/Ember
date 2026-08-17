@@ -80,16 +80,18 @@ event ordering within a session is enforced at the database level.
 
 ## What's not built yet
 
-- The actual DM console, player sheet, and table-view UI — those routes are
-  placeholder shells describing what will live there.
-- The rules engine / event pipeline itself (proposing, validating against
-  game state, and committing `GameEvent`s) — `src/lib/events/` has the zod
-  schema for every event type's *shape*, but nothing yet checks legality
-  (e.g. that an attack's target is in range) or writes to `events`.
-- Realtime subscriptions to `events`/`sessions` (Supabase Realtime channels)
-  are not wired up.
-- Campaign/character CRUD UI — the schema and RLS exist, but there's no UI
-  to create a campaign, invite players, or build a character sheet.
+- The real DM console, player sheet, and table-view UI — `/dm` and `/table`
+  currently only prove the event pipeline (propose a `narration` event, see
+  it committed live on both surfaces); they're not the panel layouts from
+  the design docs yet. `/play` is still a placeholder shell.
+- The rules engine — `proposeNarrationEvent` (`src/app/dm/actions.ts`)
+  validates a proposed event's *shape* via zod and commits it, but nothing
+  checks legality against game state (e.g. that an attack's target is in
+  range). Only `narration` events have a UI; the other 12 types in
+  `src/lib/events/schema.ts` are unused so far.
+- Campaign/character CRUD UI — every user gets one auto-provisioned "Demo
+  campaign" (`getOrCreateDemoSession`) instead of real campaign creation,
+  invites, or a character sheet.
 - The AI dungeon master itself.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server
   action, but there's no corresponding "set new password" page for the
