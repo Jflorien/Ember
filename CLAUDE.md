@@ -161,14 +161,22 @@ nothing is stored — `CharacterHp` and `CharacterConditions` (`src/components/c
 `character-conditions.tsx`) each fold the relevant events for a character into current state,
 live over Realtime, rendered on both `/dm` and `/play`.
 
-**Not built:** campaign/character CRUD (there's a single auto-provisioned "Demo campaign" and
-"Demo character" per user, standing in for real creation flows), the rules engine (validation of
-a proposed event against game state — the schema only validates *shape*, not legality), the other
-9 event types' UI (`move`, `cast`, `attack`, etc.), spell slots and inventory on the character
-sheet, the three surfaces' real designs (DM console/player app/table are still single-purpose
-proof pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec — that spec
-was just updated with a BG3-density reference note and a new Party Status Strip panel, still
-unbuilt), anything AI.
+**Built:** real campaign creation (name + auto-generated invite code + first session) and
+character creation (name, fixed 20 max HP pending SRD content), replacing the old auto-provisioned
+"Demo campaign"/"Demo character." Joining is a `security definer` RPC
+(`join_campaign_by_code`, `supabase/migrations/0003_campaign_invites.sql`) rather than a relaxed
+RLS policy — `memberships_insert_owner_or_dm` still only lets the DM insert directly; the RPC is
+the one sanctioned side door, and it only ever inserts a row for `auth.uid()` itself. `/join/[code]`
+redeems a code and redirects to `/play`; `/dm` and `/play` now show creation/join forms instead of
+auto-creating when a user has nothing yet.
+
+**Not built:** the rules engine (validation of a proposed event against game state — the schema
+only validates *shape*, not legality), the other 9 event types' UI (`move`, `cast`, `attack`,
+etc.), spell slots and inventory on the character sheet, a character/campaign picker (a user with
+more than one campaign only ever sees their most recently created one), the three surfaces' real
+designs (DM console/player app/table are still single-purpose proof pages, not the panel layouts
+in Notion's `DM Console Panels` / player UI spec — that spec has a BG3-density reference note and
+a Party Status Strip panel, now unblocked but still unbuilt), anything AI.
 
 ### Next, in order
 
@@ -186,9 +194,15 @@ unbuilt), anything AI.
    live across `/dm` and `/play`, including apply *and* remove for conditions (last event for a
    given condition name wins, same as HP is a running fold, not a counter). Spell slots and
    inventory still unbuilt.
-5. **Real campaign/character creation**, replacing `getOrCreateDemoSession` /
-   `getOrCreateDemoCharacter`. The Party Status Strip panel needs this first — it has nothing to
-   show until a campaign has more than one character.
+5. ~~Real campaign/character creation.~~ Done — verified live: existing demo data migrated
+   cleanly (backfilled invite code, no auto-create regression), joined a campaign through the real
+   `/join/[code]` UI and confirmed the membership row landed, invalid codes render a clean error.
+   The RPC's actual logic (idempotent double-join, rejection of bad codes) was verified at the SQL
+   level with a simulated second user, the same technique used for the RLS leak test — this repo
+   didn't have a second real account to test the join flow as an actual second person, only ever
+   one Supabase auth user existed to test with.
+6. **Party Status Strip**, now unblocked — needs a campaign with more than one character to show
+   anything, and a campaign/character picker, since a user can now plausibly belong to several.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

@@ -9,7 +9,7 @@ type CookiesToSet = Parameters<
   NonNullable<CookieMethodsServer["setAll"]>
 >[0];
 
-const PROTECTED_PREFIXES = ["/dm", "/play"];
+const PROTECTED_PREFIXES = ["/dm", "/play", "/join"];
 
 /**
  * Refreshes the Supabase session on every request and redirects

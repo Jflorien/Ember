@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getOrCreateDemoSession } from "@/app/dm/actions";
+import { getMyPlayerCampaign } from "@/app/dm/actions";
 import { LiveEventFeed } from "@/components/live-event-feed";
 
 // This page always reflects a live session; never attempt static generation.
@@ -11,7 +11,9 @@ export default async function TableViewPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  const campaign = user ? await getMyPlayerCampaign() : null;
+
+  if (!campaign) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-basalt-990 px-6 text-center">
         <span className="runic">Coming soon</span>
@@ -27,7 +29,7 @@ export default async function TableViewPage() {
     );
   }
 
-  const { sessionId } = await getOrCreateDemoSession();
+  const { sessionId } = campaign;
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-basalt-990 px-6 py-16">

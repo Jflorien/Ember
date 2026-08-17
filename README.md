@@ -15,8 +15,9 @@ the route shells for those three surfaces, wired to Supabase.
 ## Setup
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com).
-2. **Run the migration** against it — either paste
-   `supabase/migrations/0001_init.sql` into the SQL editor, or, with the
+2. **Run the migrations** against it — either paste each file in
+   `supabase/migrations/` into the SQL editor **in order** (`0001`, then
+   `0002`, then `0003`), or, with the
    [Supabase CLI](https://supabase.com/docs/guides/cli) linked to your
    project:
 
@@ -89,9 +90,11 @@ event ordering within a session is enforced at the database level.
   state (e.g. that an attack's target is in range). Only `narration`,
   `damage`, `heal`, and `condition` events have a UI; the other 9 types in
   `src/lib/events/schema.ts` are unused so far.
-- Campaign/character CRUD UI — every user gets one auto-provisioned "Demo
-  campaign" and "Demo character" (`getOrCreateDemoSession` /
-  `getOrCreateDemoCharacter`) instead of real creation flows or invites.
+- A campaign/character *picker* — creation and joining are real now
+  (`/dm` and `/play` show forms instead of auto-creating), but a user with
+  more than one campaign only ever sees their most recently created one.
+  There's also no member-management UI (kick, change role, regenerate an
+  invite code) once someone's joined.
 - Spell slots and inventory on the character sheet.
 - The AI dungeon master itself.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getOrCreateDemoSession, getOrCreateDemoCharacter } from "@/app/dm/actions";
+import { getMyDmCampaign, getAnyCharacterInCampaign } from "@/app/dm/actions";
+import { CreateCampaignForm } from "@/components/create-campaign-form";
+import { InviteCodeDisplay } from "@/components/invite-code-display";
 import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
 import { DamageHealComposer } from "@/components/damage-heal-composer";
@@ -17,8 +19,7 @@ export default async function DmConsolePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { campaignId, sessionId } = await getOrCreateDemoSession();
-  const { characterId, maxHp } = await getOrCreateDemoCharacter(campaignId);
+  const campaign = await getMyDmCampaign();
 
   return (
     <main className="flex min-h-screen flex-col bg-basalt-950">
@@ -32,39 +33,72 @@ export default async function DmConsolePage() {
       </header>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
-        <div>
-          <span className="runic hot">Event console — early proof</span>
-          <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
-            Propose an event. Watch it commit.
-          </h1>
-          <p className="mt-2 text-sm text-ash-300">
-            Every narration you send here is validated against the same
-            zod schema the rules engine will use, committed to{" "}
-            <code className="font-mono text-ash-100">events</code>, and
-            fanned out over Realtime — this is what{" "}
-            <code className="font-mono text-ash-100">/table</code> is
-            reading live, in another tab or another browser.
-          </p>
-        </div>
-
-        <EventComposer sessionId={sessionId} />
-
-        <div>
-          <div className="runic mb-3">Demo character</div>
-          <CharacterHp sessionId={sessionId} characterId={characterId} maxHp={maxHp} />
-          <div className="mt-3">
-            <CharacterConditions sessionId={sessionId} characterId={characterId} />
-          </div>
-        </div>
-
-        <DamageHealComposer sessionId={sessionId} targetId={characterId} />
-        <ConditionComposer sessionId={sessionId} targetId={characterId} />
-
-        <div>
-          <div className="runic mb-3">Session log</div>
-          <LiveEventFeed sessionId={sessionId} />
-        </div>
+        {!campaign ? (
+          <CreateCampaignForm />
+        ) : (
+          <DmConsoleBody campaignId={campaign.id} sessionId={campaign.sessionId} inviteCode={campaign.inviteCode} />
+        )}
       </div>
     </main>
+  );
+}
+
+async function DmConsoleBody({
+  campaignId,
+  sessionId,
+  inviteCode,
+}: {
+  campaignId: string;
+  sessionId: string;
+  inviteCode: string;
+}) {
+  const target = await getAnyCharacterInCampaign(campaignId);
+
+  return (
+    <>
+      <div>
+        <span className="runic hot">Event console — early proof</span>
+        <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
+          Propose an event. Watch it commit.
+        </h1>
+        <p className="mt-2 text-sm text-ash-300">
+          Every narration you send here is validated against the same
+          zod schema the rules engine will use, committed to{" "}
+          <code className="font-mono text-ash-100">events</code>, and
+          fanned out over Realtime — this is what{" "}
+          <code className="font-mono text-ash-100">/table</code> is
+          reading live, in another tab or another browser.
+        </p>
+      </div>
+
+      <InviteCodeDisplay inviteCode={inviteCode} />
+
+      <EventComposer sessionId={sessionId} />
+
+      {target ? (
+        <>
+          <div>
+            <div className="runic mb-3">Targeting {target.name}</div>
+            <CharacterHp sessionId={sessionId} characterId={target.characterId} maxHp={target.maxHp} />
+            <div className="mt-3">
+              <CharacterConditions sessionId={sessionId} characterId={target.characterId} />
+            </div>
+          </div>
+
+          <DamageHealComposer sessionId={sessionId} targetId={target.characterId} />
+          <ConditionComposer sessionId={sessionId} targetId={target.characterId} />
+        </>
+      ) : (
+        <p className="font-mono text-sm text-ash-500">
+          No characters in this campaign yet — share the invite code above and
+          have a player create one on /play.
+        </p>
+      )}
+
+      <div>
+        <div className="runic mb-3">Session log</div>
+        <LiveEventFeed sessionId={sessionId} />
+      </div>
+    </>
   );
 }
