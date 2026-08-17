@@ -1,11 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { regenerateInviteCode, type EventActionState } from "@/app/dm/actions";
+import { SubmitButton } from "@/components/submit-button";
 
-export function InviteCodeDisplay({ inviteCode }: { inviteCode: string }) {
+const initialState: EventActionState = {};
+
+export function InviteCodeDisplay({
+  campaignId,
+  inviteCode,
+}: {
+  campaignId: string;
+  inviteCode: string;
+}) {
   const [copied, setCopied] = useState(false);
   const joinUrl =
     typeof window !== "undefined" ? `${window.location.origin}/join/${inviteCode}` : "";
+
+  const regenerateAction = regenerateInviteCode.bind(null, campaignId);
+  const [state, formAction] = useActionState(regenerateAction, initialState);
 
   function handleCopy() {
     if (!joinUrl) return;
@@ -20,10 +33,20 @@ export function InviteCodeDisplay({ inviteCode }: { inviteCode: string }) {
       <div>
         <span className="runic">Invite players</span>
         <p className="mt-1 font-mono text-lg tracking-widest text-forge-300">{inviteCode}</p>
+        {state.error && (
+          <p className="mt-1 text-sm text-[#ff8f92]" role="alert">
+            {state.error}
+          </p>
+        )}
       </div>
-      <button type="button" onClick={handleCopy} className="btn btn-iron">
-        {copied ? "Copied" : "Copy join link"}
-      </button>
+      <div className="flex gap-2">
+        <button type="button" onClick={handleCopy} className="btn btn-iron">
+          {copied ? "Copied" : "Copy join link"}
+        </button>
+        <form action={formAction}>
+          <SubmitButton>Regenerate</SubmitButton>
+        </form>
+      </div>
     </div>
   );
 }

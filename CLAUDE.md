@@ -254,6 +254,24 @@ simulated-second-user technique, rolled back; and a real attack plus a real self
 event submitted through the actual `/play` UI, both confirmed by reading the committed rows back
 and watching `/table` render them live over Realtime.
 
+The DM console gained member management: `MemberManagement` (`src/components/member-management.tsx`)
+lists everyone who's joined via invite code, with a player/spectator role select and a Remove
+(kick) button per row, and `InviteCodeDisplay` gained a "Regenerate" button. No new migration —
+`memberships`/`campaigns` RLS from `0001_init.sql` already restricted insert/update/delete to the
+owner or DM, this just gives that existing permission a UI. Deliberately narrow: the role select
+only offers `player`/`spectator`, not `dm` — promoting someone to co-DM is a bigger trust
+delegation than this panel is scoped for, even though the RLS itself would technically allow it.
+Kicking only deletes the membership row; a kicked player's characters stay as they were. Caught a
+real bug live: the role `<select>` used `defaultValue`, an uncontrolled-input pattern React only
+reads on mount — after `revalidatePath` refetched the new role, the dropdown kept showing the
+*pre-save* value even though the write had already succeeded, because React doesn't touch an
+uncontrolled element's value on re-render. Fixed with `key={member.role}`, forcing a remount
+whenever the underlying role actually changes. Verified live: role toggled player → spectator →
+player (each confirmed by querying the row directly, not just trusting the UI, which is exactly
+what caught the bug), invite code regenerated and reflected without a refresh, and a kick that
+removed the membership row while leaving the account's own DM access untouched (ownership, not
+membership, is what `is_campaign_dm` checks first).
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks a spell's components or whether a character has the
 resource it's spending, and a hit still requires a manual follow-up damage event rather than
@@ -320,6 +338,14 @@ Notion's `DM Console Panels` / player UI spec), anything AI.
     (own-character insert accepted, other-character insert rejected, both live against the real
     project and rolled back), plus a real attack and a real self-reported damage event submitted
     through the actual `/play` UI and watched propagate to `/table` live.
+12. ~~Member management.~~ Done — role changes and kicks on the DM console, using the
+    insert/update/delete permissions `0001_init.sql`'s memberships RLS already granted the DM
+    but nothing had a UI for yet. Verified live end to end (role player → spectator → player,
+    invite code regeneration, a kick) — and caught a real bug doing it: an uncontrolled
+    `<select defaultValue>` doesn't re-read its value on re-render, so the role dropdown kept
+    showing the pre-save role after a successful write until fixed with `key={member.role}` to
+    force a remount. Confirmed by querying the database directly rather than trusting the UI,
+    which is exactly what surfaced the bug in the first place.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

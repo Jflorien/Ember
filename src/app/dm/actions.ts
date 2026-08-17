@@ -166,6 +166,109 @@ export async function createCampaign(
   return {};
 }
 
+export type CampaignMember = { userId: string; displayName: string; role: string };
+
+/**
+ * Everyone who has joined a campaign via invite code — not the DM/owner,
+ * who has no membership row (is_campaign_dm checks campaigns.owner_id
+ * directly). For the DM console's member-management panel.
+ */
+export async function getCampaignMembers(campaignId: string): Promise<CampaignMember[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("user_id, role, users(display_name)")
+    .eq("campaign_id", campaignId)
+    .order("joined_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => {
+    const user = row.users as unknown as { display_name: string | null } | null;
+    return {
+      userId: row.user_id,
+      displayName: user?.display_name ?? "Unnamed",
+      role: row.role,
+    };
+  });
+}
+
+/**
+ * Swaps in a fresh invite code, e.g. after accidentally sharing one in the
+ * wrong place. RLS (campaigns_update_owner) already restricts this to the
+ * campaign's owner, so there's nothing to check here beyond the update
+ * itself succeeding.
+ */
+export async function regenerateInviteCode(campaignId: string): Promise<EventActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ invite_code: generateInviteCode() })
+    .eq("id", campaignId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dm");
+  return {};
+}
+
+const ASSIGNABLE_ROLES = ["player", "spectator"] as const;
+
+/**
+ * Player <-> spectator only — promoting someone to co-DM (role: 'dm') is a
+ * bigger trust delegation than this panel is scoped for, so it's not one of
+ * the options here even though the memberships RLS would technically allow
+ * a DM to set it.
+ */
+export async function updateMemberRole(
+  campaignId: string,
+  userId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const role = String(formData.get("role") ?? "");
+  if (!ASSIGNABLE_ROLES.includes(role as (typeof ASSIGNABLE_ROLES)[number])) {
+    return { error: "Pick a valid role." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("memberships")
+    .update({ role })
+    .eq("campaign_id", campaignId)
+    .eq("user_id", userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dm");
+  return {};
+}
+
+/**
+ * Kicks a member — deletes their membership row only. Any characters they
+ * created stay in the campaign as-is; this isn't trying to also decide
+ * whether a kicked player's character should be removed from play.
+ */
+export async function removeMember(campaignId: string, userId: string): Promise<EventActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("memberships")
+    .delete()
+    .eq("campaign_id", campaignId)
+    .eq("user_id", userId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dm");
+  return {};
+}
+
 export type PlayerCampaign = { id: string; name: string; sessionId: string };
 
 /** Every campaign the current user can see on /play: joined-as-member first, then owned. */

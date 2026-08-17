@@ -105,8 +105,12 @@ and never on behalf of a character they don't own.
   without a separate log. The round counter (`RoundTracker` on `/dm`,
   read-only `RoundBadge` on `/table` and `/play`) is folded from committed
   `round` events the same way HP is — nothing stores "what round is it."
-- Member-management UI (kick, change role, regenerate an invite code) once
-  someone's joined a campaign. A campaign/character picker exists now
+- Promoting a member to co-DM. `MemberManagement` on `/dm` covers kicking a
+  member and switching them between `player`/`spectator`, and
+  `InviteCodeDisplay` can regenerate the invite code, but the role select
+  deliberately doesn't offer `dm` — the memberships RLS would technically
+  allow it, but granting co-DM authority is a bigger decision than this
+  panel is scoped for. A campaign/character picker also exists now
   (`CampaignSwitcher` on `/dm` and `/play`, plus a target `<select>` in the
   DM console ahead of the damage/heal/condition composers), so a user with
   multiple campaigns can switch between them and the DM can target any

@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getMyDmCampaign, getMyDmCampaigns, getPartyMembers } from "@/app/dm/actions";
+import {
+  getMyDmCampaign,
+  getMyDmCampaigns,
+  getPartyMembers,
+  getCampaignMembers,
+} from "@/app/dm/actions";
 import { CreateCampaignForm } from "@/components/create-campaign-form";
 import { InviteCodeDisplay } from "@/components/invite-code-display";
 import { CampaignSwitcher } from "@/components/campaign-switcher";
@@ -9,6 +14,7 @@ import { LiveEventFeed } from "@/components/live-event-feed";
 import { TargetedComposers } from "@/components/targeted-composers";
 import { PartyStatusStrip } from "@/components/party-status-strip";
 import { RoundTracker } from "@/components/round-tracker";
+import { MemberManagement } from "@/components/member-management";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -52,7 +58,11 @@ export default async function DmConsolePage({
         {!campaign ? (
           <CreateCampaignForm />
         ) : (
-          <DmConsoleBody campaignId={campaign.id} sessionId={campaign.sessionId} inviteCode={campaign.inviteCode} />
+          <DmConsoleBody
+            campaignId={campaign.id}
+            sessionId={campaign.sessionId}
+            inviteCode={campaign.inviteCode}
+          />
         )}
       </div>
     </main>
@@ -69,6 +79,7 @@ async function DmConsoleBody({
   inviteCode: string;
 }) {
   const members = await getPartyMembers(campaignId);
+  const campaignMembers = await getCampaignMembers(campaignId);
 
   return (
     <>
@@ -87,7 +98,12 @@ async function DmConsoleBody({
         </p>
       </div>
 
-      <InviteCodeDisplay inviteCode={inviteCode} />
+      <InviteCodeDisplay campaignId={campaignId} inviteCode={inviteCode} />
+
+      <div>
+        <div className="runic mb-3">Members</div>
+        <MemberManagement campaignId={campaignId} members={campaignMembers} />
+      </div>
 
       <RoundTracker sessionId={sessionId} />
 
