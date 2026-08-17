@@ -86,25 +86,37 @@ and never on behalf of a character they don't own.
 
 ## What's not built yet
 
-- The real DM console, player sheet, and table-view UI — `/dm`, `/play`, and
-  `/table` currently only prove the event pipeline, a live character sheet
-  (HP + conditions), and a Party Status Strip; they're not the panel
-  layouts from the design docs yet.
+- The real DM console, player sheet, and table-view UI beyond a first pass.
+  `/dm` is now organized into named panels (Session Setup, Turn Control,
+  Party, Event Console, Session Log) matching the Notion `DM Console Panels`
+  spec, but only the panels backed by real, already-committed data — the
+  map/grid panels (Live Table/Map Control, Encounter Staging), NPC/monster
+  management, and the AI co-pilot panel are all still blocked on systems
+  that don't exist (a map primitive, a stat-block system, the AI DM itself).
+  `/play`'s Core Character Stats panel is HP + conditions only — ability
+  scores, saves, and passive perception have no data model yet, and Actions
+  & Spells needs real spell/ability content that isn't seeded.
 - Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
   event's *shape* via zod, and a database trigger
   (`supabase/migrations/0004_validate_event_targets.sql`, widened to cover
-  `attack` in `0005_validate_attack_targets.sql`) rejects a `damage`/`heal`/
-  `condition`/`attack` event whose target isn't a real character in the same
+  `attack` in `0005_validate_attack_targets.sql` and `loot` in
+  `0007_validate_loot_targets.sql`) rejects a `damage`/`heal`/`condition`/
+  `attack`/`loot` event whose target isn't a real character in the same
   campaign, but nothing checks legality beyond that (e.g. that an attack's
   target is in range, or that a hit actually deals damage — that's still a
-  separate manual event). Only `narration`, `damage`, `heal`, `condition`,
-  `attack`, and `round` events have a UI; the other 7 types in
-  `src/lib/events/schema.ts` are unused so far. Dice are rolled server-side
-  via a seeded PRNG (`src/lib/dice.ts`) — the seed and every raw roll are
-  committed as part of the event payload, so an attack roll is auditable
-  without a separate log. The round counter (`RoundTracker` on `/dm`,
-  read-only `RoundBadge` on `/table` and `/play`) is folded from committed
-  `round` events the same way HP is — nothing stores "what round is it."
+  separate manual event). `narration`, `damage`, `heal`, `condition`,
+  `attack`, `round`, and `loot` events have a UI; the other 6 types in
+  `src/lib/events/schema.ts` are unused so far (mostly blocked on a map/grid
+  primitive or spell content). Dice are rolled server-side via a seeded PRNG
+  (`src/lib/dice.ts`) — the seed and every raw roll are committed as part of
+  the event payload, so an attack roll is auditable without a separate log.
+  The round counter (`RoundTracker` on `/dm`, read-only `RoundBadge` on
+  `/table` and `/play`) is folded from committed `round` events the same way
+  HP is — nothing stores "what round is it." Every DM-side composer also has
+  a per-event visibility control (`public`/`dm_only`/`player:<uuid>`,
+  `src/components/visibility-select.tsx`) and `dm_only` events can be
+  revealed to the party as a new public event without mutating the hidden
+  one — the log stays append-only either way.
 - Promoting a member to co-DM. `MemberManagement` on `/dm` covers kicking a
   member and switching them between `player`/`spectator`, and
   `InviteCodeDisplay` can regenerate the invite code, but the role select
@@ -115,7 +127,9 @@ and never on behalf of a character they don't own.
   DM console ahead of the damage/heal/condition composers), so a user with
   multiple campaigns can switch between them and the DM can target any
   character, not just the first one created.
-- Spell slots and inventory on the character sheet.
+- Spell slots and inventory on the character sheet. Class and level are real
+  now (`characters.class`/`.level`, set at creation and shown in `/play`'s
+  Session Header), but ability scores, saves, and race still aren't.
 - The AI dungeon master itself.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server
   action, but there's no corresponding "set new password" page for the

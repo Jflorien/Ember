@@ -272,13 +272,62 @@ what caught the bug), invite code regenerated and reflected without a refresh, a
 removed the membership row while leaving the account's own DM access untouched (ownership, not
 membership, is what `is_campaign_dm` checks first).
 
+A real UI pass landed against the Notion specs (`DM Console Panels` and `In-Session Player
+Dashboard Panels`, both first-drafted earlier in this project) — every piece that could be backed
+by real, already-committed data, nothing fabricated. Deliberately skipped: the map/grid panels
+(Live Table/Map Control, Encounter Staging), NPC/monster stat blocks, the AI co-pilot, and
+ability scores/spells/actions — all still blocked on systems that don't exist, and faking them
+would be UI theater the app doesn't actually do anything with.
+
+What shipped: **event visibility control** (DM Console Panels §7, "Hidden Information &
+Visibility") — every DM composer (`narration`/`attack`/`damage`/`heal`/`condition`/`loot`) gained
+a `VisibilitySelect` (`src/components/visibility-select.tsx`) offering `public` / `dm_only` /
+`player:<uuid>` per member, wired through `readVisibility()` replacing what had been a hardcoded
+`"public"` on every propose\*Event since the very first one. `player:<uuid>` is scoped by the
+character's *owning user*, not the character itself, so `getPartyMembers`/`PartyMember` gained
+`ownerId`. `LiveEventFeed` now shows a visibility badge and, for `dm_only` rows, a **Reveal**
+button (`revealEvent`) that emits a *new* public narration describing the hidden event rather
+than mutating it — same append-only shape as everything else in this log. The composer components
+(`AttackComposer`/`DamageHealComposer`/`ConditionComposer`) take `members` as an *optional* prop
+now: present (DM context) renders the selector, absent (`PlayerActionPanel` on `/play`) omits it
+and the server action defaults to `public` — one shared component, two call sites, no
+visibility-control leak into the player's self-action panel.
+
+**Loot** (§9) is built end to end — `proposeLootEvent` + `LootComposer`
+(`src/components/loot-composer.tsx`), freeform item name + quantity per submission (the payload's
+`items` array needs no catalog, `itemId` stays `null`). The event-target-validation trigger
+widened again (`supabase/migrations/0007_validate_loot_targets.sql`) to cover `loot`'s `targetId`,
+same pattern as 0005 for `attack`. `describeEvent` gained a loot case ("Loot: 3× Healing Potion").
+
+**Character class/level** — `characters.class`/`.level` existed in the schema since
+`0001_init.sql` with zero UI. `CreateCharacterForm` gained both fields (class is freeform text —
+Ember's own classes like Wildfire Barbarian aren't a fixed SRD catalog either, so a dropdown would
+already be wrong), and `/play`'s Session Header shows them once set ("Your character — Wildfire
+Barbarian, Lv 3"), falling back to the old plain label for characters created before this shipped.
+
+**Panel reorg** — `/dm` restructured into named `PanelSection`s matching the spec's information
+architecture (Session Setup, Turn Control, Party, Event Console, Session Log) instead of one flat
+stack of components; every piece inside each section is the same real, already-wired
+functionality, just organized under the name the spec gives it.
+
+Verified live: a `dm_only` narration committed, confirmed invisible in the initial render and
+correctly badged once it appeared, `Reveal` emitting the expected public follow-up (checked by
+reading both rows back); a loot event committed and rendered correctly on `/table`
+("Loot: 3× Healing Potion"); a new character created through the real `/play` form with class and
+level, confirmed both in the DB and in the Session Header's rendered chip. Note: verifying that a
+*non-DM* player can't see a `dm_only` event has to lean on the earlier `rls_leak_test.sql` (the
+account driving this session is the DM everywhere it's logged in, including `/table`, so a
+same-account check would show `dm_only` content there too — that's identity-based RLS working
+correctly, not a leak) — this pass didn't touch the SELECT policy at all, only added.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks a spell's components or whether a character has the
 resource it's spending, and a hit still requires a manual follow-up damage event rather than
-applying it automatically), the other 7 event types' UI (`move`, `cast`, etc.), spell slots and
-inventory on the character sheet, the three surfaces' real designs beyond the `/table` visual
-pass (DM console/player app are still single-purpose proof pages, not the panel layouts in
-Notion's `DM Console Panels` / player UI spec), anything AI.
+applying it automatically), `move`/`cast`/`terrain`/`destroy`/`death`/`reveal` event UI (all
+blocked on a map/grid primitive or spell content that doesn't exist), spell slots and inventory
+on the character sheet, the map/NPC/AI-co-pilot panels from the DM console spec, the player app's
+Core Character Stats beyond HP (ability scores, saves, passive perception — no data model yet)
+and Actions & Spells panel (needs real spell/ability content), anything AI.
 
 ### Next, in order
 
@@ -346,6 +395,13 @@ Notion's `DM Console Panels` / player UI spec), anything AI.
     showing the pre-save role after a successful write until fixed with `key={member.role}` to
     force a remount. Confirmed by querying the database directly rather than trusting the UI,
     which is exactly what surfaced the bug in the first place.
+13. ~~UI pass against the Notion panel specs.~~ Done, scoped to what's real: event visibility
+    control + Reveal (DM Console Panels §7), a `loot` composer (§9), character class/level, and
+    `/dm` reorganized into the spec's named panels. Everything else in both specs — maps, NPCs,
+    AI co-pilot, ability scores, spells — stayed unbuilt on purpose rather than faked. Verified
+    live: a `dm_only` narration committed and revealed correctly (both rows confirmed in the DB),
+    a loot event rendered on `/table`, and a new character created through the real `/play` form
+    showing its class/level in the Session Header.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

@@ -124,6 +124,32 @@ exception
     end if;
 end $$;
 
+-- Loot against a character actually in this session's campaign: allowed
+-- (0007_validate_loot_targets.sql widened the same trigger to cover loot).
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01TARGETTESTGGGGGGGGGGGGGG', '44444444-4444-4444-4444-444444444444', 'loot', null,
+  '{"v":1,"targetId":"55555555-5555-5555-5555-555555555555","items":[{"itemId":null,"name":"Healing Potion","quantity":2}]}'::jsonb,
+  'public', 'human'
+);
+
+-- Loot against a real character from a *different* campaign: must be rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01TARGETTESTHHHHHHHHHHHHHH', '44444444-4444-4444-4444-444444444444', 'loot', null,
+    '{"v":1,"targetId":"66666666-6666-6666-6666-666666666666","items":[{"itemId":null,"name":"Healing Potion","quantity":2}]}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: loot against a character from a different campaign was accepted';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 rollback;
 
 select 'event target validation test passed' as result;

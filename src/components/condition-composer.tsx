@@ -1,18 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { proposeConditionEvent, type EventActionState } from "@/app/dm/actions";
+import { proposeConditionEvent, type EventActionState, type PartyMember } from "@/app/dm/actions";
 import { CONDITIONS } from "@/lib/events";
 import { SubmitButton } from "@/components/submit-button";
+import { VisibilitySelect } from "@/components/visibility-select";
 
 const initialState: EventActionState = {};
 
+/** `members` is optional and DM-only — see AttackComposer for why. */
 export function ConditionComposer({
   sessionId,
   targetId,
+  members,
 }: {
   sessionId: string;
   targetId: string;
+  members?: PartyMember[];
 }) {
   const action = proposeConditionEvent.bind(null, sessionId, targetId);
   const [state, formAction] = useActionState(action, initialState);
@@ -49,6 +53,7 @@ export function ConditionComposer({
           className="w-36 bg-basalt-900 px-3 py-2 text-sm text-ash-100 placeholder:text-ash-500 focus:outline-none focus:shadow-[inset_0_0_0_1px_var(--forge-500)]"
         />
       </div>
+      {members && <VisibilitySelect members={members} />}
       <SubmitButton>Commit</SubmitButton>
       {state.error && (
         <p className="text-sm text-[#ff8f92]" role="alert">

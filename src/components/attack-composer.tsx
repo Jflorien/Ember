@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { proposeAttackEvent, type EventActionState } from "@/app/dm/actions";
+import { proposeAttackEvent, type EventActionState, type PartyMember } from "@/app/dm/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { VisibilitySelect } from "@/components/visibility-select";
 
 const initialState: EventActionState = {};
 
@@ -10,15 +11,19 @@ const initialState: EventActionState = {};
  * Rolls the die server-side (see proposeAttackEvent / src/lib/dice.ts) —
  * this form only ever sends the modifier and advantage state, never a
  * result. attackerId/targetId come from TargetedComposers' two pickers.
+ * `members` is optional and DM-only — PlayerActionPanel omits it, so a
+ * player's own attack has no visibility control and defaults to public.
  */
 export function AttackComposer({
   sessionId,
   attackerId,
   targetId,
+  members,
 }: {
   sessionId: string;
   attackerId: string;
   targetId: string;
+  members?: PartyMember[];
 }) {
   const action = proposeAttackEvent.bind(null, sessionId, attackerId, targetId);
   const [state, formAction] = useActionState(action, initialState);
@@ -43,6 +48,7 @@ export function AttackComposer({
         <option value="advantage">Advantage</option>
         <option value="disadvantage">Disadvantage</option>
       </select>
+      {members && <VisibilitySelect members={members} />}
       <SubmitButton>Roll attack</SubmitButton>
       {state.error && (
         <p className="w-full text-sm text-[#ff8f92]" role="alert">

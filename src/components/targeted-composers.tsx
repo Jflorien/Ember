@@ -5,6 +5,7 @@ import type { PartyMember } from "@/app/dm/actions";
 import { AttackComposer } from "@/components/attack-composer";
 import { DamageHealComposer } from "@/components/damage-heal-composer";
 import { ConditionComposer } from "@/components/condition-composer";
+import { LootComposer } from "@/components/loot-composer";
 
 /**
  * The DM console's attack/damage/heal/condition composers, plus the pickers
@@ -71,9 +72,15 @@ export function TargetedComposers({
         </div>
       </div>
 
-      <AttackComposer sessionId={sessionId} attackerId={attackerId} targetId={targetId} />
-      <DamageHealComposer sessionId={sessionId} targetId={targetId} />
-      <ConditionComposer sessionId={sessionId} targetId={targetId} />
+      <AttackComposer
+        sessionId={sessionId}
+        attackerId={attackerId}
+        targetId={targetId}
+        members={members}
+      />
+      <DamageHealComposer sessionId={sessionId} targetId={targetId} members={members} />
+      <ConditionComposer sessionId={sessionId} targetId={targetId} members={members} />
+      <LootComposer sessionId={sessionId} targetId={targetId} members={members} />
     </div>
   );
 }

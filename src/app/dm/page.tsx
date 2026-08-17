@@ -69,6 +69,21 @@ export default async function DmConsolePage({
   );
 }
 
+function PanelSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="runic">{title}</div>
+      {children}
+    </section>
+  );
+}
+
 async function DmConsoleBody({
   campaignId,
   sessionId,
@@ -84,42 +99,42 @@ async function DmConsoleBody({
   return (
     <>
       <div>
-        <span className="runic hot">Event console — early proof</span>
+        <span className="runic hot">DM console</span>
         <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
           Propose an event. Watch it commit.
         </h1>
         <p className="mt-2 text-sm text-ash-300">
-          Every narration you send here is validated against the same
-          zod schema the rules engine will use, committed to{" "}
-          <code className="font-mono text-ash-100">events</code>, and
-          fanned out over Realtime — this is what{" "}
-          <code className="font-mono text-ash-100">/table</code> is
-          reading live, in another tab or another browser.
+          Every event proposed here is validated against the same zod schema
+          the rules engine uses, committed to{" "}
+          <code className="font-mono text-ash-100">events</code>, and fanned
+          out over Realtime — this is what{" "}
+          <code className="font-mono text-ash-100">/table</code> and{" "}
+          <code className="font-mono text-ash-100">/play</code> are reading
+          live.
         </p>
       </div>
 
-      <InviteCodeDisplay campaignId={campaignId} inviteCode={inviteCode} />
-
-      <div>
-        <div className="runic mb-3">Members</div>
+      <PanelSection title="Session Setup">
+        <InviteCodeDisplay campaignId={campaignId} inviteCode={inviteCode} />
         <MemberManagement campaignId={campaignId} members={campaignMembers} />
-      </div>
+      </PanelSection>
 
-      <RoundTracker sessionId={sessionId} />
+      <PanelSection title="Turn Control">
+        <RoundTracker sessionId={sessionId} />
+      </PanelSection>
 
-      <EventComposer sessionId={sessionId} />
-
-      <div>
-        <div className="runic mb-3">Party</div>
+      <PanelSection title="Party">
         <PartyStatusStrip sessionId={sessionId} members={members} />
-      </div>
+      </PanelSection>
 
-      <TargetedComposers sessionId={sessionId} members={members} />
+      <PanelSection title="Event Console">
+        <EventComposer sessionId={sessionId} members={members} />
+        <TargetedComposers sessionId={sessionId} members={members} />
+      </PanelSection>
 
-      <div>
-        <div className="runic mb-3">Session log</div>
+      <PanelSection title="Session Log">
         <LiveEventFeed sessionId={sessionId} />
-      </div>
+      </PanelSection>
     </>
   );
 }

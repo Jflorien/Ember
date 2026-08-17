@@ -8,6 +8,7 @@ export type SessionEventRow = {
   seq: number;
   type: string;
   payload: Record<string, unknown>;
+  visibility: string;
   committed_at: string;
 };
 
@@ -27,7 +28,7 @@ export function useSessionEvents(sessionId: string): SessionEventRow[] {
 
     supabase
       .from("events")
-      .select("id, seq, type, payload, committed_at")
+      .select("id, seq, type, payload, visibility, committed_at")
       .eq("session_id", sessionId)
       .order("seq", { ascending: true })
       .then(({ data }) => {

@@ -5,18 +5,23 @@ import {
   proposeDamageEvent,
   proposeHealEvent,
   type EventActionState,
+  type PartyMember,
 } from "@/app/dm/actions";
 import { DAMAGE_TYPES } from "@/lib/events";
 import { SubmitButton } from "@/components/submit-button";
+import { VisibilitySelect } from "@/components/visibility-select";
 
 const initialState: EventActionState = {};
 
+/** `members` is optional and DM-only — see AttackComposer for why. */
 export function DamageHealComposer({
   sessionId,
   targetId,
+  members,
 }: {
   sessionId: string;
   targetId: string;
+  members?: PartyMember[];
 }) {
   const damageAction = proposeDamageEvent.bind(null, sessionId, targetId);
   const healAction = proposeHealEvent.bind(null, sessionId, targetId);
@@ -49,6 +54,7 @@ export function DamageHealComposer({
             ))}
           </select>
         </div>
+        {members && <VisibilitySelect members={members} />}
         <SubmitButton>Deal damage</SubmitButton>
         {damageState.error && (
           <p className="text-sm text-[#ff8f92]" role="alert">
@@ -68,6 +74,7 @@ export function DamageHealComposer({
           placeholder="Amount"
           className="w-24 bg-basalt-900 px-3 py-2 text-sm text-ash-100 placeholder:text-ash-500 focus:outline-none focus:shadow-[inset_0_0_0_1px_var(--forge-500)]"
         />
+        {members && <VisibilitySelect members={members} />}
         <SubmitButton>Heal</SubmitButton>
         {healState.error && (
           <p className="text-sm text-[#ff8f92]" role="alert">

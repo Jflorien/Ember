@@ -101,7 +101,9 @@ async function PlayerSheetBody({
           sessionId={sessionId}
           characterId={character.characterId}
           maxHp={character.maxHp}
-          label="Your character"
+          label={
+            character.class ? `Your character — ${character.class}, Lv ${character.level}` : "Your character"
+          }
         />
         <div>
           <div className="runic mb-2">Conditions</div>

@@ -1,12 +1,19 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { proposeNarrationEvent, type EventActionState } from "@/app/dm/actions";
+import { proposeNarrationEvent, type EventActionState, type PartyMember } from "@/app/dm/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { VisibilitySelect } from "@/components/visibility-select";
 
 const initialState: EventActionState = {};
 
-export function EventComposer({ sessionId }: { sessionId: string }) {
+export function EventComposer({
+  sessionId,
+  members,
+}: {
+  sessionId: string;
+  members: PartyMember[];
+}) {
   const action = proposeNarrationEvent.bind(null, sessionId);
   const [state, formAction] = useActionState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -31,6 +38,7 @@ export function EventComposer({ sessionId }: { sessionId: string }) {
           required
         />
       </div>
+      <VisibilitySelect members={members} />
       <SubmitButton>Propose</SubmitButton>
       {state.error && (
         <p className="text-sm text-[#ff8f92]" role="alert">

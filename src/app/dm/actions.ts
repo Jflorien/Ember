@@ -7,6 +7,7 @@ import {
   newEventId,
   proposedGameEventSchema,
   conditionNameSchema,
+  describeEvent,
   type ProposedGameEvent,
 } from "@/lib/events";
 import { rollDice } from "@/lib/dice";
@@ -34,6 +35,12 @@ async function insertEvent(
 }
 
 const INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
+
+/** Falls back to 'public' when a composer's visibility select is absent. */
+function readVisibility(formData: FormData): string {
+  const raw = formData.get("visibility");
+  return typeof raw === "string" && raw.trim() !== "" ? raw : "public";
+}
 
 function generateInviteCode(length = 8): string {
   const bytes = randomBytes(length);
@@ -421,18 +428,24 @@ export async function joinCampaignAction(
 // Characters
 // ---------------------------------------------------------------------------
 
-export type MyCharacter = { characterId: string; maxHp: number };
-export type PartyMember = { characterId: string; name: string; maxHp: number };
+export type MyCharacter = {
+  characterId: string;
+  maxHp: number;
+  class: string | null;
+  level: number;
+};
+export type PartyMember = { characterId: string; name: string; maxHp: number; ownerId: string };
 
 /**
- * Every character in a campaign, for the Party Status Strip and as the
- * option list for the DM console's target picker.
+ * Every character in a campaign, for the Party Status Strip, the DM
+ * console's target picker, and (via ownerId) building `player:<uuid>`
+ * visibility options — visibility is scoped per user, not per character.
  */
 export async function getPartyMembers(campaignId: string): Promise<PartyMember[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("characters")
-    .select("id, name, sheet")
+    .select("id, name, sheet, owner_id")
     .eq("campaign_id", campaignId)
     .order("created_at", { ascending: true });
 
@@ -440,7 +453,12 @@ export async function getPartyMembers(campaignId: string): Promise<PartyMember[]
 
   return (data ?? []).map((row) => {
     const sheet = row.sheet as { maxHp?: number } | null;
-    return { characterId: row.id, name: row.name, maxHp: sheet?.maxHp ?? 20 };
+    return {
+      characterId: row.id,
+      name: row.name,
+      maxHp: sheet?.maxHp ?? 20,
+      ownerId: row.owner_id,
+    };
   });
 }
 
@@ -454,7 +472,7 @@ export async function getMyCharacter(campaignId: string): Promise<MyCharacter | 
 
   const { data, error } = await supabase
     .from("characters")
-    .select("id, sheet")
+    .select("id, sheet, class, level")
     .eq("campaign_id", campaignId)
     .eq("owner_id", user.id)
     .order("created_at", { ascending: true })
@@ -465,13 +483,20 @@ export async function getMyCharacter(campaignId: string): Promise<MyCharacter | 
   if (!data) return null;
 
   const sheet = data.sheet as { maxHp?: number } | null;
-  return { characterId: data.id, maxHp: sheet?.maxHp ?? 20 };
+  return {
+    characterId: data.id,
+    maxHp: sheet?.maxHp ?? 20,
+    class: data.class,
+    level: data.level,
+  };
 }
 
 /**
  * Real character creation, replacing the old auto-provisioned "Demo
- * character." Max HP is still a fixed default — there's no class/level
- * system or SRD content seeded yet to derive it from.
+ * character." Max HP is still a fixed default — there's no leveling system
+ * to derive it from yet. class is freeform text (matches `characters.class`,
+ * no SRD-class catalog required — Ember's own classes aren't seeded either,
+ * so a fixed dropdown would be wrong even once SRD content exists).
  */
 export async function createCharacter(
   campaignId: string,
@@ -481,6 +506,14 @@ export async function createCharacter(
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
     return { error: "Character needs a name." };
+  }
+
+  const characterClass = String(formData.get("class") ?? "").trim();
+  const levelRaw = formData.get("level");
+  const level = levelRaw && String(levelRaw).trim() !== "" ? Number(levelRaw) : 1;
+
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    return { error: "Level must be a whole number from 1 to 20." };
   }
 
   const supabase = await createClient();
@@ -493,6 +526,8 @@ export async function createCharacter(
     campaign_id: campaignId,
     owner_id: user.id,
     name,
+    class: characterClass || null,
+    level,
     sheet: { maxHp: 20 },
   });
 
@@ -532,7 +567,7 @@ export async function proposeNarrationEvent(
     type: "narration",
     actor: null,
     payload: { v: 1, text },
-    visibility: "public",
+    visibility: readVisibility(formData),
     proposed_by: "human",
   });
 
@@ -541,6 +576,52 @@ export async function proposeNarrationEvent(
   }
 
   const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * DM Console Panels' "Reveal to party" action: emits a *new* public
+ * narration describing a dm_only event, rather than mutating the hidden
+ * one's visibility — the log stays append-only either way. Scoped to
+ * dm_only only; player:<uuid> events already have an intended single
+ * audience, so "reveal to everyone" isn't the same action for those.
+ */
+export async function revealEvent(
+  sessionId: string,
+  eventId: string,
+): Promise<EventActionState> {
+  const supabase = await createClient();
+
+  const { data: original, error: fetchError } = await supabase
+    .from("events")
+    .select("type, payload, visibility")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (fetchError || !original) {
+    return { error: "Couldn't find that event." };
+  }
+
+  if (original.visibility !== "dm_only") {
+    return { error: "Only a dm_only event can be revealed this way." };
+  }
+
+  const text = `Revealed: ${describeEvent(original as { type: string; payload: Record<string, unknown> })}`;
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "narration",
+    actor: null,
+    payload: { v: 1, text },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
   return insertEvent(supabase, candidate.data);
 }
 
@@ -614,7 +695,7 @@ export async function proposeAttackEvent(
       critical,
       hit,
     },
-    visibility: "public",
+    visibility: readVisibility(formData),
     proposed_by: "human",
   });
 
@@ -651,7 +732,7 @@ export async function proposeDamageEvent(
     type: "damage",
     actor: null,
     payload: { v: 1, targetId, amount, damageType, source: null },
-    visibility: "public",
+    visibility: readVisibility(formData),
     proposed_by: "human",
   });
 
@@ -681,7 +762,7 @@ export async function proposeHealEvent(
     type: "heal",
     actor: null,
     payload: { v: 1, targetId, amount, source: null },
-    visibility: "public",
+    visibility: readVisibility(formData),
     proposed_by: "human",
   });
 
@@ -732,7 +813,48 @@ export async function proposeConditionEvent(
       durationRounds,
       source: null,
     },
-    visibility: "public",
+    visibility: readVisibility(formData),
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for handing loot to a character. The `loot`
+ * payload's items are freeform (name + quantity, itemId nullable) — no
+ * item catalog exists yet, so this doesn't need one to be real. One item
+ * per submission, wrapped in the array the schema expects.
+ */
+export async function proposeLootEvent(
+  sessionId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const quantity = Number(formData.get("quantity"));
+
+  if (!name) {
+    return { error: "Item needs a name." };
+  }
+
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return { error: "Quantity must be a positive whole number." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "loot",
+    actor: null,
+    payload: { v: 1, targetId, items: [{ itemId: null, name, quantity }] },
+    visibility: readVisibility(formData),
     proposed_by: "human",
   });
 

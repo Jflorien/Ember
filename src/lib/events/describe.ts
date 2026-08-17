@@ -27,5 +27,14 @@ export function describeEvent(event: DescribableEvent): string {
     }
   }
 
+  if (event.type === "loot" && Array.isArray(payload.items)) {
+    const items = payload.items as Array<{ name?: unknown; quantity?: unknown }>;
+    const summary = items
+      .filter((item) => typeof item.name === "string")
+      .map((item) => (typeof item.quantity === "number" ? `${item.quantity}× ${item.name}` : item.name))
+      .join(", ");
+    if (summary) return `Loot: ${summary}`;
+  }
+
   return `[${event.type}]`;
 }
