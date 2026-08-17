@@ -156,27 +156,22 @@ route shells, schema + RLS (live on the `ember` Supabase project, RLS leak-teste
 and automated in CI), design system applied, the `GameEvent` zod schema (`src/lib/events/`), a
 full propose → validate → commit → Realtime slice for `narration`/`damage`/`heal`/`condition`
 events (`src/app/dm/actions.ts`), a `before insert` trigger that assigns `seq` gap-free per
-session (`supabase/migrations/0002_event_seq_and_realtime.sql`), and a character sheet where
-nothing is stored — `CharacterHp` and `CharacterConditions` (`src/components/character-hp.tsx`,
-`character-conditions.tsx`) each fold the relevant events for a character into current state,
-live over Realtime, rendered on both `/dm` and `/play`.
-
-**Built:** real campaign creation (name + auto-generated invite code + first session) and
-character creation (name, fixed 20 max HP pending SRD content), replacing the old auto-provisioned
-"Demo campaign"/"Demo character." Joining is a `security definer` RPC
-(`join_campaign_by_code`, `supabase/migrations/0003_campaign_invites.sql`) rather than a relaxed
-RLS policy — `memberships_insert_owner_or_dm` still only lets the DM insert directly; the RPC is
-the one sanctioned side door, and it only ever inserts a row for `auth.uid()` itself. `/join/[code]`
-redeems a code and redirects to `/play`; `/dm` and `/play` now show creation/join forms instead of
-auto-creating when a user has nothing yet.
+session (`supabase/migrations/0002_event_seq_and_realtime.sql`), real campaign/character creation
+with invite-code joins (`supabase/migrations/0003_campaign_invites.sql`, `/join/[code]`,
+replacing the old auto-provisioned "Demo campaign"/"Demo character"), and a character sheet where
+nothing is stored — `useCharacterHp`/`useCharacterConditions` (`src/lib/hooks/`) each fold the
+relevant events for a character into current state, live over Realtime, shared by `CharacterHp`/
+`CharacterConditions` (the full sheet, on `/dm` and `/play`) and `PartyMemberTile` (the compact
+Party Status Strip, showing every character in the campaign on both surfaces).
 
 **Not built:** the rules engine (validation of a proposed event against game state — the schema
 only validates *shape*, not legality), the other 9 event types' UI (`move`, `cast`, `attack`,
-etc.), spell slots and inventory on the character sheet, a character/campaign picker (a user with
-more than one campaign only ever sees their most recently created one), the three surfaces' real
-designs (DM console/player app/table are still single-purpose proof pages, not the panel layouts
-in Notion's `DM Console Panels` / player UI spec — that spec has a BG3-density reference note and
-a Party Status Strip panel, now unblocked but still unbuilt), anything AI.
+etc.), spell slots and inventory on the character sheet, a campaign/character *picker* (a user
+with more than one campaign only ever sees their most recently created one; the DM console
+targets its damage/heal/condition composers at whichever character was created first, not a
+chosen one), the three surfaces' real designs (DM console/player app/table are still
+single-purpose proof pages, not the panel layouts in Notion's `DM Console Panels` / player UI
+spec), anything AI.
 
 ### Next, in order
 
@@ -186,23 +181,25 @@ a Party Status Strip panel, now unblocked but still unbuilt), anything AI.
 2. ~~One event end-to-end.~~ Done. The Realtime half had its own real bug: the browser client's
    websocket authorizes independently of the REST client's session, and subscribing before
    `supabase.realtime.setAuth()` resolves leaves a window where `postgres_changes` silently
-   applies RLS as an anonymous connection and delivers nothing — no error. Fixed in
-   `LiveEventFeed`; every component that opens its own Realtime channel (`CharacterHp`,
-   `CharacterConditions`) repeats the same setAuth-before-subscribe fix.
-3. ~~Automate the RLS leak test.~~ Done, runs in CI on every push.
-4. ~~Character sheet, driven by the event stream.~~ Done for HP and conditions — both verified
-   live across `/dm` and `/play`, including apply *and* remove for conditions (last event for a
-   given condition name wins, same as HP is a running fold, not a counter). Spell slots and
-   inventory still unbuilt.
-5. ~~Real campaign/character creation.~~ Done — verified live: existing demo data migrated
-   cleanly (backfilled invite code, no auto-create regression), joined a campaign through the real
-   `/join/[code]` UI and confirmed the membership row landed, invalid codes render a clean error.
-   The RPC's actual logic (idempotent double-join, rejection of bad codes) was verified at the SQL
-   level with a simulated second user, the same technique used for the RLS leak test — this repo
-   didn't have a second real account to test the join flow as an actual second person, only ever
-   one Supabase auth user existed to test with.
-6. **Party Status Strip**, now unblocked — needs a campaign with more than one character to show
-   anything, and a campaign/character picker, since a user can now plausibly belong to several.
+   applies RLS as an anonymous connection and delivers nothing — no error. Every hook in
+   `src/lib/hooks/` that opens a Realtime channel repeats the same setAuth-before-subscribe fix.
+3. ~~Automate the RLS leak test.~~ Done, runs in CI on every push — and caught a real regression
+   later the same session (0003 made `invite_code` NOT NULL; the test's seed script didn't know
+   yet). That's exactly the job it's there to do.
+4. ~~Character sheet, driven by the event stream.~~ Done for HP and conditions. Spell slots and
+   inventory still unbuilt (blocked on SRD content).
+5. ~~Real campaign/character creation.~~ Done — verified live via the actual `/join/[code]` UI,
+   with the RPC's own logic (idempotent double-join, bad-code rejection) verified at the SQL level
+   using a simulated second user, the same technique as the RLS leak test — this project has had
+   only one real Supabase auth user to test with the whole time.
+6. ~~Party Status Strip.~~ Done — verified live on both `/dm` and `/play` with three characters in
+   the same campaign (two seeded synthetically via SQL, same simulated-user technique, since
+   there's still only one real account): correct HP per tile, and a condition applied through the
+   DM console's composer showed up as a dot on the right tile, live, on both surfaces.
+7. **Campaign/character picker**, now the more pressing gap — the Party Status Strip and DM
+   console both quietly assume "current campaign" and "current target" are unambiguous, which
+   stops being true the moment a user has more than one campaign or a campaign has more than one
+   untargeted character.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

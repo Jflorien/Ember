@@ -1,14 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getMyDmCampaign, getAnyCharacterInCampaign } from "@/app/dm/actions";
+import { getMyDmCampaign, getPartyMembers } from "@/app/dm/actions";
 import { CreateCampaignForm } from "@/components/create-campaign-form";
 import { InviteCodeDisplay } from "@/components/invite-code-display";
 import { EventComposer } from "@/components/event-composer";
 import { LiveEventFeed } from "@/components/live-event-feed";
 import { DamageHealComposer } from "@/components/damage-heal-composer";
-import { CharacterHp } from "@/components/character-hp";
 import { ConditionComposer } from "@/components/condition-composer";
-import { CharacterConditions } from "@/components/character-conditions";
+import { PartyStatusStrip } from "@/components/party-status-strip";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -52,7 +51,8 @@ async function DmConsoleBody({
   sessionId: string;
   inviteCode: string;
 }) {
-  const target = await getAnyCharacterInCampaign(campaignId);
+  const members = await getPartyMembers(campaignId);
+  const target = members[0];
 
   return (
     <>
@@ -75,16 +75,17 @@ async function DmConsoleBody({
 
       <EventComposer sessionId={sessionId} />
 
+      <div>
+        <div className="runic mb-3">Party</div>
+        <PartyStatusStrip sessionId={sessionId} members={members} />
+      </div>
+
       {target ? (
         <>
-          <div>
-            <div className="runic mb-3">Targeting {target.name}</div>
-            <CharacterHp sessionId={sessionId} characterId={target.characterId} maxHp={target.maxHp} />
-            <div className="mt-3">
-              <CharacterConditions sessionId={sessionId} characterId={target.characterId} />
-            </div>
-          </div>
-
+          <p className="font-mono text-sm text-ash-500">
+            Targeting {target.name} — no character picker yet, so composers
+            below always target the first character in the campaign.
+          </p>
           <DamageHealComposer sessionId={sessionId} targetId={target.characterId} />
           <ConditionComposer sessionId={sessionId} targetId={target.characterId} />
         </>

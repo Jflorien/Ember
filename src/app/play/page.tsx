@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
-import { getMyPlayerCampaign, getMyCharacter } from "@/app/dm/actions";
+import { getMyPlayerCampaign, getMyCharacter, getPartyMembers } from "@/app/dm/actions";
 import { JoinCampaignForm } from "@/components/join-campaign-form";
 import { CreateCharacterForm } from "@/components/create-character-form";
 import { CharacterHp } from "@/components/character-hp";
 import { CharacterConditions } from "@/components/character-conditions";
+import { PartyStatusStrip } from "@/components/party-status-strip";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ async function PlayerSheetBody({
     return <CreateCharacterForm campaignId={campaignId} />;
   }
 
+  const members = await getPartyMembers(campaignId);
+
   return (
     <>
       <div>
@@ -78,6 +81,11 @@ async function PlayerSheetBody({
           <div className="runic mb-2">Conditions</div>
           <CharacterConditions sessionId={sessionId} characterId={character.characterId} />
         </div>
+      </div>
+
+      <div>
+        <div className="runic mb-3">Party</div>
+        <PartyStatusStrip sessionId={sessionId} members={members} />
       </div>
     </>
   );

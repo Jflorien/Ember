@@ -82,9 +82,9 @@ event ordering within a session is enforced at the database level.
 ## What's not built yet
 
 - The real DM console, player sheet, and table-view UI — `/dm`, `/play`, and
-  `/table` currently only prove the event pipeline and a live character
-  sheet (HP + conditions); they're not the panel layouts from the design
-  docs yet.
+  `/table` currently only prove the event pipeline, a live character sheet
+  (HP + conditions), and a Party Status Strip; they're not the panel
+  layouts from the design docs yet.
 - The rules engine — `src/app/dm/actions.ts` validates a proposed event's
   *shape* via zod and commits it, but nothing checks legality against game
   state (e.g. that an attack's target is in range). Only `narration`,
@@ -92,7 +92,9 @@ event ordering within a session is enforced at the database level.
   `src/lib/events/schema.ts` are unused so far.
 - A campaign/character *picker* — creation and joining are real now
   (`/dm` and `/play` show forms instead of auto-creating), but a user with
-  more than one campaign only ever sees their most recently created one.
+  more than one campaign only ever sees their most recently created one,
+  and the DM console's damage/heal/condition composers always target
+  whichever character was created first in the campaign, not a chosen one.
   There's also no member-management UI (kick, change role, regenerate an
   invite code) once someone's joined.
 - Spell slots and inventory on the character sheet.

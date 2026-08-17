@@ -242,29 +242,28 @@ export async function joinCampaignAction(
 // ---------------------------------------------------------------------------
 
 export type MyCharacter = { characterId: string; maxHp: number };
+export type PartyMember = { characterId: string; name: string; maxHp: number };
 
 /**
- * Any one character in the campaign, for the DM console's damage/heal/
- * condition composers to target — there's no character picker yet, so
- * this is a stand-in for "the DM chooses who an event targets."
+ * Every character in a campaign, for the Party Status Strip and — its
+ * first member — as the DM console's damage/heal/condition composer
+ * target. There's no character picker yet, so "first member" stands in
+ * for "the DM chooses who an event targets."
  */
-export async function getAnyCharacterInCampaign(
-  campaignId: string,
-): Promise<(MyCharacter & { name: string }) | null> {
+export async function getPartyMembers(campaignId: string): Promise<PartyMember[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("characters")
     .select("id, name, sheet")
     .eq("campaign_id", campaignId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  if (!data) return null;
 
-  const sheet = data.sheet as { maxHp?: number } | null;
-  return { characterId: data.id, name: data.name, maxHp: sheet?.maxHp ?? 20 };
+  return (data ?? []).map((row) => {
+    const sheet = row.sheet as { maxHp?: number } | null;
+    return { characterId: row.id, name: row.name, maxHp: sheet?.maxHp ?? 20 };
+  });
 }
 
 /** The current user's character in a campaign, or null if they haven't made one yet. */
