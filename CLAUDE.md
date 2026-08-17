@@ -175,14 +175,22 @@ reads the bracket contents as a color; the fix is the arbitrary-property form,
 `[box-shadow:var(--glow-md)]`. Worth remembering anywhere else a CSS custom property holding a
 full shadow value gets used as a Tailwind arbitrary value.
 
-**Not built:** the rules engine (validation of a proposed event against game state — the schema
-only validates *shape*, not legality), the other 9 event types' UI (`move`, `cast`, `attack`,
-etc.), spell slots and inventory on the character sheet, a campaign/character *picker* (a user
-with more than one campaign only ever sees their most recently created one; the DM console
-targets its damage/heal/condition composers at whichever character was created first, not a
-chosen one), the three surfaces' real designs beyond that one visual pass (DM console/player app
-are still single-purpose proof pages, not the panel layouts in Notion's `DM Console Panels` /
-player UI spec), anything AI.
+The rules engine has its first real check beyond zod shape validation: a `before insert` trigger
+(`supabase/migrations/0004_validate_event_targets.sql`) rejects any `damage`/`heal`/`condition`
+event whose `targetId` doesn't name a real character in the *same campaign* as the event's
+session — enforced in Postgres, not `src/app/dm/actions.ts`, for the same reason `seq` assignment
+and RLS live there: application code is one bypassable path to this table, not the only one.
+Automated in CI (`supabase/tests/event_target_validation_test.sql`, same disposable-instance
+pattern as the RLS leak test) alongside a live check against the real project.
+
+**Not built:** the rest of the rules engine (this is one invariant, not full legality — nothing
+yet checks an attack's range, a spell's components, whether a character has the resource it's
+spending), the other 9 event types' UI (`move`, `cast`, `attack`, etc.), spell slots and inventory
+on the character sheet, a campaign/character *picker* (a user with more than one campaign only
+ever sees their most recently created one; the DM console targets its damage/heal/condition
+composers at whichever character was created first, not a chosen one), the three surfaces' real
+designs beyond the `/table` visual pass (DM console/player app are still single-purpose proof
+pages, not the panel layouts in Notion's `DM Console Panels` / player UI spec), anything AI.
 
 ### Next, in order
 
@@ -207,10 +215,15 @@ player UI spec), anything AI.
    the same campaign (two seeded synthetically via SQL, same simulated-user technique, since
    there's still only one real account): correct HP per tile, and a condition applied through the
    DM console's composer showed up as a dot on the right tile, live, on both surfaces.
-7. **Campaign/character picker**, now the more pressing gap — the Party Status Strip and DM
-   console both quietly assume "current campaign" and "current target" are unambiguous, which
-   stops being true the moment a user has more than one campaign or a campaign has more than one
-   untargeted character.
+7. **Campaign/character picker** — still open, the more pressing gap of the two below. The Party
+   Status Strip and DM console both quietly assume "current campaign" and "current target" are
+   unambiguous, which stops being true the moment a user has more than one campaign or a campaign
+   has more than one untargeted character.
+8. ~~Rules engine: validate event targets.~~ Done, out of order (picked over the picker on
+   request) — the first check beyond zod shape validation. Verified three ways: an automated CI
+   test with a wrong-campaign target and a nonexistent target, both asserted to fail; the same
+   test run live against the real project; and a real damage/heal round-trip through the actual
+   `/dm` UI afterward, confirming the trigger doesn't reject legitimate events.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

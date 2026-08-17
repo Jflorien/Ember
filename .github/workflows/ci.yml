@@ -19,10 +19,10 @@ jobs:
       - run: npm run lint
 
   # Applies supabase/migrations/*.sql to a disposable local Postgres (via the
-  # Supabase CLI's Docker stack) and runs supabase/tests/rls_leak_test.sql
+  # Supabase CLI's Docker stack) and runs every supabase/tests/*.sql file
   # against it. Never touches a real project, so it needs no secrets — see
-  # the comment at the top of that file for what it actually checks.
-  rls-leak-test:
+  # the comment at the top of each test file for what it actually checks.
+  sql-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,5 +39,10 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/rls_leak_test.sql
+      - name: Run event target validation test
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/event_target_validation_test.sql
       - run: supabase stop
         if: always()

@@ -16,10 +16,9 @@ the route shells for those three surfaces, wired to Supabase.
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com).
 2. **Run the migrations** against it — either paste each file in
-   `supabase/migrations/` into the SQL editor **in order** (`0001`, then
-   `0002`, then `0003`), or, with the
-   [Supabase CLI](https://supabase.com/docs/guides/cli) linked to your
-   project:
+   `supabase/migrations/` into the SQL editor **in numeric order**, or,
+   with the [Supabase CLI](https://supabase.com/docs/guides/cli) linked to
+   your project:
 
    ```bash
    supabase db push
@@ -85,10 +84,13 @@ event ordering within a session is enforced at the database level.
   `/table` currently only prove the event pipeline, a live character sheet
   (HP + conditions), and a Party Status Strip; they're not the panel
   layouts from the design docs yet.
-- The rules engine — `src/app/dm/actions.ts` validates a proposed event's
-  *shape* via zod and commits it, but nothing checks legality against game
-  state (e.g. that an attack's target is in range). Only `narration`,
-  `damage`, `heal`, and `condition` events have a UI; the other 9 types in
+- Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
+  event's *shape* via zod, and a database trigger
+  (`supabase/migrations/0004_validate_event_targets.sql`) now rejects a
+  `damage`/`heal`/`condition` event whose target isn't a real character in
+  the same campaign, but nothing checks legality beyond that (e.g. that an
+  attack's target is in range). Only `narration`, `damage`, `heal`, and
+  `condition` events have a UI; the other 9 types in
   `src/lib/events/schema.ts` are unused so far.
 - A campaign/character *picker* — creation and joining are real now
   (`/dm` and `/play` show forms instead of auto-creating), but a user with
