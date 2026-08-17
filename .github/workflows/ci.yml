@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+
+  # Applies supabase/migrations/*.sql to a disposable local Postgres (via the
+  # Supabase CLI's Docker stack) and runs supabase/tests/rls_leak_test.sql
+  # against it. Never touches a real project, so it needs no secrets — see
+  # the comment at the top of that file for what it actually checks.
+  rls-leak-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # psql talks to the postgres container directly (port 54322), so every
+      # other service (auth API, storage, realtime, studio, ...) is excluded
+      # to keep this fast — the SQL migrations that create the auth schema
+      # run at postgres init regardless of which services are up.
+      - run: supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Run RLS leak test
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls_leak_test.sql
+      - run: supabase stop
+        if: always()
