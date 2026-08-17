@@ -102,8 +102,33 @@ exception
     end if;
 end $$;
 
+-- Move where the player owns the actor: allowed.
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01SEFACTNGGGGGGGGGGGGGGGGG', '40404040-4040-4040-4040-404040404040', 'move', null,
+  '{"v":1,"actorId":"50505050-5050-5050-5050-505050505050","from":{"x":0,"y":0},"to":{"x":1,"y":0},"feetSpent":5,"feetRemaining":0}'::jsonb,
+  'public', 'human'
+);
+
+-- Move where the player does NOT own the actor: rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01SEFACTNHHHHHHHHHHHHHHHHH', '40404040-4040-4040-4040-404040404040', 'move', null,
+    '{"v":1,"actorId":"60606060-6060-6060-6060-606060606060","from":{"x":0,"y":0},"to":{"x":1,"y":0},"feetSpent":5,"feetRemaining":0}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: player moved a character they do not own';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 -- Narration from a non-DM player: rejected — the new policy only widens
--- attack/damage/heal/condition, nothing else.
+-- attack/damage/heal/condition/move, nothing else.
 do $$
 begin
   insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)

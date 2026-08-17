@@ -88,26 +88,32 @@ and never on behalf of a character they don't own.
 
 - The real DM console, player sheet, and table-view UI beyond a first pass.
   `/dm` is now organized into named panels (Session Setup, Turn Control,
-  Party, Event Console, Session Log) matching the Notion `DM Console Panels`
-  spec, but only the panels backed by real, already-committed data — the
-  map/grid panels (Live Table/Map Control, Encounter Staging), NPC/monster
-  management, and the AI co-pilot panel are all still blocked on systems
-  that don't exist (a map primitive, a stat-block system, the AI DM itself).
-  `/play`'s Core Character Stats panel is HP + conditions only — ability
-  scores, saves, and passive perception have no data model yet, and Actions
-  & Spells needs real spell/ability content that isn't seeded.
+  Party, Event Console, Live Table, Session Log) matching the Notion
+  `DM Console Panels` spec, and a map/grid primitive is real now (see below)
+  — but Encounter Staging, NPC/monster management, and the AI co-pilot panel
+  are still blocked on systems that don't exist (a stat-block system, the AI
+  DM itself). `/play`'s Core Character Stats panel is HP + conditions only —
+  ability scores, saves, and passive perception have no data model yet, and
+  Actions & Spells needs real spell/ability content that isn't seeded.
 - Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
   event's *shape* via zod, and a database trigger
   (`supabase/migrations/0004_validate_event_targets.sql`, widened to cover
-  `attack` in `0005_validate_attack_targets.sql` and `loot` in
-  `0007_validate_loot_targets.sql`) rejects a `damage`/`heal`/`condition`/
-  `attack`/`loot` event whose target isn't a real character in the same
-  campaign, but nothing checks legality beyond that (e.g. that an attack's
-  target is in range, or that a hit actually deals damage — that's still a
-  separate manual event). `narration`, `damage`, `heal`, `condition`,
-  `attack`, `round`, and `loot` events have a UI; the other 6 types in
-  `src/lib/events/schema.ts` are unused so far (mostly blocked on a map/grid
-  primitive or spell content). Dice are rolled server-side via a seeded PRNG
+  `attack` in `0005`, `loot` in `0007`, and `move` in
+  `0008_map_grid_events.sql`) rejects a `damage`/`heal`/`condition`/`attack`/
+  `loot` event whose target isn't a real character in the same campaign, or
+  a `move` event whose actor isn't, but nothing checks legality beyond that
+  (e.g. that an attack's target is in range, or that a hit actually deals
+  damage — that's still a separate manual event). `narration`, `damage`,
+  `heal`, `condition`, `attack`, `round`, `loot`, `terrain`, and `move`
+  events have a UI; `cast`, `destroy`, `death`, and `reveal` are still
+  unused (mostly blocked on spell content or a "character is down" state).
+  A map/grid primitive backs `terrain`/`move`: no new tables, terrain and
+  character position are both folds over committed events, same as
+  everything else. `MapGrid` (`src/components/map-grid.tsx`) is read-only
+  on `/table` and interactive on `/dm` (`MapControlPanel`) via a Move/
+  Terrain mode toggle over a fixed 16×10 grid — no map upload/resize, no
+  terrain clearing (only adding), no fog of war yet. Dice are rolled
+  server-side via a seeded PRNG
   (`src/lib/dice.ts`) — the seed and every raw roll are committed as part of
   the event payload, so an attack roll is auditable without a separate log.
   The round counter (`RoundTracker` on `/dm`, read-only `RoundBadge` on

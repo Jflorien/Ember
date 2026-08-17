@@ -320,14 +320,48 @@ account driving this session is the DM everywhere it's logged in, including `/ta
 same-account check would show `dm_only` content there too — that's identity-based RLS working
 correctly, not a leak) — this pass didn't touch the SELECT policy at all, only added.
 
+The map/grid primitive is built — `terrain` and `move`, the two event types DM Console Panels §4
+("Live Table / Map Control... the surface that actually authors `move`/`terrain`/`destroy`
+events") names first. No new tables: map state is a fold, same as everything else — `terrain`
+cells fold from committed `terrain` events (`useSessionTerrain`, last-per-cell wins, no "clear"
+yet), character positions fold from `move` events (`useCharacterPositions`, last-per-actor wins).
+`MapGrid` (`src/components/map-grid.tsx`) is the shared rendering primitive — fixed 16×10 grid
+(`src/lib/grid.ts`), terrain glyph *and* color per cell (never color-alone), character-initial
+tokens. Read-only on `/table` via `TableMap`, matching the player-dashboard spec's "this screen
+never renders the map... terrain and tokens only" — `/table` widened to `max-w-5xl` and the event
+feed shrank to make room, since the map is the point now. Interactive on `/dm` via
+`MapControlPanel`: a Move/Terrain mode toggle over the same grid, one click either moves the
+selected character or places the selected terrain type. `proposeMoveEvent` reads `from` from the
+last committed `move` event server-side (never trusted from the client, same shape as attack's
+dice and round's counter) and computes `feetSpent` as chessboard distance × 5ft; `feetRemaining`
+isn't enforced yet — there's no per-turn movement budget modeled. The target-validation trigger
+widened again (`supabase/migrations/0008_map_grid_events.sql`) to check `move`'s `actorId` instead
+of `targetId` (same function, a `v_field` variable picks the column name per type now), and the
+player-self-action RLS policy widened in the same migration so a player can move their own
+character — matching the attack/damage precedent — though `/play` has no move *UI* yet: the
+spec's "never renders the map" rule means there's no grid to click there, and a coordinates-only
+input with nothing to reference would be bad UX. The RLS permission and its CI test exist anyway,
+ahead of whatever that control ends up looking like (compass buttons, most likely, not raw x/y).
+Verified live: a wall placed and rendered on `/table`; a character moved from its default `{0,0}`
+origin to a new cell, `from` correctly read server-side, both terrain and the token confirmed by
+inspecting `/table`'s actual rendered cells (glyph, title, token letter), not just the DB. Caught
+a real *test-script* bug in the process (not an app bug) — clicking a mode-toggle button and a
+grid cell in the same synchronous script fires the second click before React re-renders with the
+new mode, so it lands under the stale closure; splitting into separate tool calls fixed it, and
+is worth remembering for any future scripted UI test that changes local state then immediately
+depends on it.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks a spell's components or whether a character has the
 resource it's spending, and a hit still requires a manual follow-up damage event rather than
-applying it automatically), `move`/`cast`/`terrain`/`destroy`/`death`/`reveal` event UI (all
-blocked on a map/grid primitive or spell content that doesn't exist), spell slots and inventory
-on the character sheet, the map/NPC/AI-co-pilot panels from the DM console spec, the player app's
-Core Character Stats beyond HP (ability scores, saves, passive perception — no data model yet)
-and Actions & Spells panel (needs real spell/ability content), anything AI.
+applying it automatically), `cast`/`destroy`/`death`/`reveal` event UI (`destroy` and `reveal`
+could reuse the grid now that it exists, `cast`/`death` need spell content and a real "character
+is down" state respectively — neither built yet), spell slots and inventory on the character
+sheet, terrain *clearing* (a placed cell can't be removed, only added over), map upload/resize
+(fixed 16×10 for now), fog of war, the NPC/monster/encounter-staging/AI-co-pilot panels from the
+DM console spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive
+perception — no data model yet) and Actions & Spells panel (needs real spell/ability content),
+anything AI.
 
 ### Next, in order
 
@@ -402,6 +436,14 @@ and Actions & Spells panel (needs real spell/ability content), anything AI.
     live: a `dm_only` narration committed and revealed correctly (both rows confirmed in the DB),
     a loot event rendered on `/table`, and a new character created through the real `/play` form
     showing its class/level in the Session Header.
+14. ~~Map/grid primitive.~~ Done — `terrain` and `move`, folded live like every other piece of
+    state in this app, no new tables. `MapGrid` renders terrain + character tokens on a fixed
+    16×10 grid; read-only on `/table` (the spec's "terrain and tokens only"), interactive on `/dm`
+    via a Move/Terrain mode toggle. Verified live: a wall placed and a character moved from its
+    default origin, both confirmed by inspecting `/table`'s actual rendered grid cells, not just
+    the database. Not a bug, but worth remembering: a scripted UI test that toggles local state
+    and immediately clicks a cell in the *same* synchronous call fires under the stale pre-toggle
+    closure, since React hasn't re-rendered yet — splitting into separate calls fixed it.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

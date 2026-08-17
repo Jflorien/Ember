@@ -150,6 +150,32 @@ exception
     end if;
 end $$;
 
+-- Move for a character actually in this session's campaign: allowed
+-- (0008_map_grid_events.sql widened the same trigger to check actorId for move).
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01TARGETTESTJJJJJJJJJJJJJJ', '44444444-4444-4444-4444-444444444444', 'move', null,
+  '{"v":1,"actorId":"55555555-5555-5555-5555-555555555555","from":{"x":0,"y":0},"to":{"x":1,"y":0},"feetSpent":5,"feetRemaining":0}'::jsonb,
+  'public', 'human'
+);
+
+-- Move for a real character from a *different* campaign: must be rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01TARGETTESTKKKKKKKKKKKKKK', '44444444-4444-4444-4444-444444444444', 'move', null,
+    '{"v":1,"actorId":"66666666-6666-6666-6666-666666666666","from":{"x":0,"y":0},"to":{"x":1,"y":0},"feetSpent":5,"feetRemaining":0}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: move for a character from a different campaign was accepted';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 rollback;
 
 select 'event target validation test passed' as result;

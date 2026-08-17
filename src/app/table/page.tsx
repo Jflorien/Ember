@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyPlayerCampaign } from "@/app/dm/actions";
+import { getMyPlayerCampaign, getPartyMembers } from "@/app/dm/actions";
 import { TvEventFeed } from "@/components/tv-event-feed";
 import { RoundBadge } from "@/components/round-badge";
+import { TableMap } from "@/components/table-map";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function TableViewPage({
   }
 
   const { sessionId } = campaign;
+  const members = await getPartyMembers(campaign.id);
 
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-hidden bg-basalt-990 px-10 py-16">
@@ -46,11 +48,14 @@ export default async function TableViewPage({
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(242,100,25,.16),transparent_70%)] blur-3xl"
       />
-      <div className="relative w-full max-w-4xl">
+      <div className="relative w-full max-w-5xl">
         <div className="mb-6 flex justify-center">
           <RoundBadge sessionId={sessionId} />
         </div>
-        <TvEventFeed sessionId={sessionId} />
+        <TableMap sessionId={sessionId} members={members} />
+        <div className="mt-8">
+          <TvEventFeed sessionId={sessionId} limit={4} />
+        </div>
       </div>
     </main>
   );

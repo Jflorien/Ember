@@ -11,6 +11,7 @@ import {
   type ProposedGameEvent,
 } from "@/lib/events";
 import { rollDice } from "@/lib/dice";
+import { cellDistance, FEET_PER_CELL } from "@/lib/grid";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventActionState = {
@@ -863,6 +864,104 @@ export async function proposeLootEvent(
   }
 
   const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for placing terrain on the grid. Map state
+ * is never stored — useSessionTerrain folds the committed `terrain` events
+ * the same way HP folds damage/heal. DM-only: this is the "DM's real-time
+ * authority over the shared map" from DM Console Panels §4, not something
+ * a player self-acts on.
+ */
+export async function proposePlaceTerrainEvent(
+  sessionId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const x = Number(formData.get("x"));
+  const y = Number(formData.get("y"));
+  const terrainType = String(formData.get("terrainType") ?? "");
+  const destructible = formData.get("destructible") === "true";
+
+  if (!Number.isInteger(x) || !Number.isInteger(y)) {
+    return { error: "Invalid cell." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "terrain",
+    actor: null,
+    payload: { v: 1, cell: { x, y }, terrainType, destructible },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for moving a character on the grid. `from`
+ * is read server-side from the last committed `move` event for this actor
+ * (never trusted from the client, same shape as attack's dice and round's
+ * counter), defaulting to {0,0} for a character that hasn't moved yet.
+ * feetSpent is chessboard distance × 5ft; feetRemaining isn't enforced
+ * yet — there's no per-turn movement budget modeled, only the count.
+ */
+export async function proposeMoveEvent(
+  sessionId: string,
+  actorId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const x = Number(formData.get("x"));
+  const y = Number(formData.get("y"));
+
+  if (!Number.isInteger(x) || !Number.isInteger(y)) {
+    return { error: "Invalid cell." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: lastMove, error: lastMoveError } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("session_id", sessionId)
+    .eq("type", "move")
+    .eq("payload->>actorId", actorId)
+    .order("seq", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastMoveError) {
+    return { error: lastMoveError.message };
+  }
+
+  const last = lastMove?.payload as { to?: { x: number; y: number } } | null;
+  const from = last?.to ?? { x: 0, y: 0 };
+  const to = { x, y };
+  const feetSpent = cellDistance(from, to) * FEET_PER_CELL;
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "move",
+    actor: null,
+    payload: { v: 1, actorId, from, to, feetSpent, feetRemaining: 0 },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
   return insertEvent(supabase, candidate.data);
 }
 

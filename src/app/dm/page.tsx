@@ -15,6 +15,7 @@ import { TargetedComposers } from "@/components/targeted-composers";
 import { PartyStatusStrip } from "@/components/party-status-strip";
 import { RoundTracker } from "@/components/round-tracker";
 import { MemberManagement } from "@/components/member-management";
+import { MapControlPanel } from "@/components/map-control-panel";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -125,6 +126,10 @@ async function DmConsoleBody({
 
       <PanelSection title="Party">
         <PartyStatusStrip sessionId={sessionId} members={members} />
+      </PanelSection>
+
+      <PanelSection title="Live Table">
+        <MapControlPanel sessionId={sessionId} members={members} />
       </PanelSection>
 
       <PanelSection title="Event Console">
