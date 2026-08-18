@@ -404,6 +404,25 @@ that's still `dm_only` to everyone but the DM. Verified live: placed a destructi
 it disappear from `/table`'s actual rendered grid after destroying it (not just the DB), and
 confirmed Reveal now commits a `reveal` row with the right shape and still renders correctly.
 
+The **AI narration co-pilot** is the first piece of "anything AI" in this repo — a single-shot
+suggestion tool, not an autonomous DM. `src/lib/ai/env.ts` reads `ANTHROPIC_API_KEY` lazily (same
+"never at module top-level" rule as Supabase's env helper, so the build still succeeds with no
+key set), `src/lib/ai/system-prompt.ts` holds `NARRATION_COPILOT_SYSTEM_PROMPT` (adapted from the
+Notion "System Prompt Template Example" but deliberately scoped down to match what's built — no
+dice, no mechanics, no autonomous state changes, SRD-only content), and `suggestNarration`
+(`src/app/dm/ai-actions.ts`, a new file rather than growing the 1000+-line `actions.ts` further)
+sends the campaign's last 20 committed events (rendered through the existing `describeEvent`) plus
+the DM's short prompt to Claude and returns suggested narration text — it never commits anything
+itself. `EventComposer` gained a second small form beneath the narration composer: typing a
+prompt and clicking Suggest fills the narration text field with the response; editing that text
+afterward, or writing narration from scratch, keeps `proposed_by: "human"`, while sending an
+unedited suggestion verbatim sets `proposed_by: "model"` — the first real use of the
+`proposedBySchema` field every prior event has hardcoded to `"human"`. Verified live: with no
+`ANTHROPIC_API_KEY` set, clicking Suggest surfaces the exact lazy-env error message
+(`Missing ANTHROPIC_API_KEY...`) through the real `/dm` UI, confirming the error path end to end;
+the actual Claude round-trip is not yet verified live — no key was available this session, so
+ship-without-live-verification was the explicit call here, unlike every other feature in this log.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
@@ -412,10 +431,12 @@ one automatically), `death` (needs a real "character is down" state — distinct
 nothing uses it yet — that's fog of war, which needs cells to have a default-hidden state per
 player first), known-spells/spell-slot tracking on the character sheet (right now any caster can
 pick any spell at any slot level), spell slots and inventory more broadly, map upload/resize
-(fixed 16×10 for now), the NPC/monster/encounter-staging/AI-co-pilot panels from the DM console
-spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive perception
-— no data model yet) and the rest of the Actions & Spells panel (spell *browsing* on `/play` —
-the compendium exists now, but nothing surfaces it there yet), anything AI.
+(fixed 16×10 for now), the NPC/monster/encounter-staging panels from the DM console spec, the
+player app's Core Character Stats beyond HP (ability scores, saves, passive perception — no data
+model yet) and the rest of the Actions & Spells panel (spell *browsing* on `/play` — the
+compendium exists now, but nothing surfaces it there yet). The AI co-pilot itself only suggests
+narration text — it doesn't call for rolls, adjudicate, or propose mechanical events, and there's
+no autonomous "AI as DM" mode.
 
 ### Next, in order
 
@@ -516,6 +537,15 @@ the compendium exists now, but nothing surfaces it there yet), anything AI.
     type the schema already defined. Verified live: a destructible prop placed and then destroyed,
     confirmed gone from `/table`'s actual rendered grid; Reveal confirmed committing a real
     `reveal` row and still rendering correctly.
+18. ~~AI narration co-pilot.~~ Done — the first real AI integration, deliberately scoped to a
+    single-shot narration suggestion the DM reviews before sending, not an autonomous DM.
+    `suggestNarration` (`src/app/dm/ai-actions.ts`) calls the Anthropic API with the campaign's
+    recent event log and never commits anything itself; `EventComposer` wires a Suggest button
+    that fills the narration field, tracking whether the DM sent it unedited (`proposed_by:
+    "model"`) or wrote/edited their own (`"human"`) — the first real use of that field. Verified
+    live that the missing-key error path surfaces correctly through the actual `/dm` UI; the real
+    Claude round-trip is unverified pending an `ANTHROPIC_API_KEY` in `.env.local` — shipped
+    without live verification on request, the one exception to this project's usual rule.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

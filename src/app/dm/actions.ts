@@ -585,6 +585,11 @@ export async function proposeNarrationEvent(
     return { error: "Narration can't be empty." };
   }
 
+  // Set by the AI co-pilot's Suggest flow when the DM sends its suggestion
+  // unedited (src/components/event-composer.tsx) — any edit resets it to
+  // "human" client-side, so this only ever reads "model" for a verbatim send.
+  const proposedBy = formData.get("proposedBy") === "model" ? "model" : "human";
+
   const candidate = proposedGameEventSchema.safeParse({
     id: newEventId(),
     session_id: sessionId,
@@ -592,7 +597,7 @@ export async function proposeNarrationEvent(
     actor: null,
     payload: { v: 1, text },
     visibility: readVisibility(formData),
-    proposed_by: "human",
+    proposed_by: proposedBy,
   });
 
   if (!candidate.success) {

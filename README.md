@@ -151,7 +151,11 @@ and never on behalf of a character they don't own.
 - Spell slots and inventory on the character sheet. Class and level are real
   now (`characters.class`/`.level`, set at creation and shown in `/play`'s
   Session Header), but ability scores, saves, and race still aren't.
-- The AI dungeon master itself.
+- The AI dungeon master itself. A narration co-pilot exists (`ANTHROPIC_API_KEY`, see
+  `.env.example`) — the DM types what should happen and Claude drafts narration text from the
+  campaign's recent event log, but it only suggests prose: it never rolls dice, adjudicates, or
+  proposes a mechanical event on its own. Sending its suggestion unedited tags the resulting
+  event `proposed_by: "model"`; editing it (or writing narration from scratch) tags it `"human"`.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server
   action, but there's no corresponding "set new password" page for the
   callback to land on yet.
