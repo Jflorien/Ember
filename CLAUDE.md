@@ -351,17 +351,42 @@ new mode, so it lands under the stale closure; splitting into separate tool call
 is worth remembering for any future scripted UI test that changes local state then immediately
 depends on it.
 
+The spell content model exists now: `spells` (`supabase/migrations/0009_spells.sql`), global
+reference data readable by every authenticated user — a spell means the same thing in every
+campaign, so it isn't scoped to one, unlike characters or events. Seeded with 16 spells: 15 real
+SRD 5.2.1 spells spanning cantrip through 3rd level across damage, healing, buff, and utility
+(Fire Bolt, Magic Missile, Cure Wounds, Shield, Fireball, and eleven more), plus one original spell
+— `source: 'original'` marks the difference, satisfying CLAUDE.md's "must support original classes
+and subclasses, not just a seeded SRD dump." That original spell, Shock Spark, was already named
+in the Notion "SORCERER SPELL LIST" as `(original)` with no mechanics ever written down; it's
+filled in here as a conservative Fire Bolt reskin (lightning instead of fire) rather than inventing
+new mechanics unprompted — worth a real design pass whenever the actual creative intent for it
+exists. `cast` is wired end to end on it: `proposeCastEvent` denormalizes `spellName` into the
+payload at cast time (same reasoning as attack's seed/rawRolls — the event should describe what
+actually happened even if the spells row changes or is deleted later), and `CastComposer` reuses
+`TargetedComposers`' existing Attacker picker as the caster. No per-character "known spells" list
+or spell-slot tracking exists, so the picker is the full compendium and nothing stops picking a
+spell above the caster's level — matching the same "shape, not full legality" line every other
+event type draws today. DM-only for this pass, unlike attack — `cast` doesn't have the RLS/target-
+validation-trigger treatment (`targetIds` is an array, not a single `targetId`, so it doesn't fit
+the existing single-field check without a rewrite) or a player-self-action path yet. Verified live:
+cast Fireball at slot 3 through the actual `/dm` UI, confirmed the full payload (spell name, slot,
+caster, target) landed correctly, and watched it render on `/table` as
+"Cast: Fireball (slot 3) — 1 target."
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
-not full legality — nothing yet checks a spell's components or whether a character has the
-resource it's spending, and a hit still requires a manual follow-up damage event rather than
-applying it automatically), `cast`/`destroy`/`death`/`reveal` event UI (`destroy` and `reveal`
-could reuse the grid now that it exists, `cast`/`death` need spell content and a real "character
-is down" state respectively — neither built yet), spell slots and inventory on the character
-sheet, terrain *clearing* (a placed cell can't be removed, only added over), map upload/resize
-(fixed 16×10 for now), fog of war, the NPC/monster/encounter-staging/AI-co-pilot panels from the
-DM console spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive
-perception — no data model yet) and Actions & Spells panel (needs real spell/ability content),
-anything AI.
+not full legality — nothing yet checks whether a character has the spell slot it's spending, and
+a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
+one automatically), `destroy`/`death`/`reveal` event UI (`destroy` and `reveal` could reuse the
+grid now that it exists; `death` needs a real "character is down" state), target validation and
+player-self-action for `cast` (needs to handle `targetIds` as an array instead of the single-field
+`targetId` every other check assumes), known-spells/spell-slot tracking on the character sheet
+(right now any caster can pick any spell at any slot level), spell slots and inventory more broadly,
+terrain *clearing* (a placed cell can't be removed, only added over), map upload/resize (fixed
+16×10 for now), fog of war, the NPC/monster/encounter-staging/AI-co-pilot panels from the DM
+console spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive
+perception — no data model yet) and the rest of the Actions & Spells panel (spell *browsing* on
+`/play` — the compendium exists now, but nothing surfaces it there yet), anything AI.
 
 ### Next, in order
 
@@ -444,6 +469,11 @@ anything AI.
     the database. Not a bug, but worth remembering: a scripted UI test that toggles local state
     and immediately clicks a cell in the *same* synchronous call fires under the stale pre-toggle
     closure, since React hasn't re-rendered yet — splitting into separate calls fixed it.
+15. ~~SRD/spell content model.~~ Done — a real `spells` table (16 rows: 15 SRD 5.2.1 spells plus
+    one original, `source` marking which), and `cast` wired end to end against it. No known-spells
+    or spell-slot tracking yet, so any caster can pick any spell freely — the same "shape, not full
+    legality" line every other event type draws. Verified live: cast Fireball at slot 3 through the
+    actual `/dm` UI, confirmed the full payload landed correctly, and watched it render on `/table`.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

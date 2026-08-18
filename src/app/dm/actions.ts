@@ -541,6 +541,29 @@ export async function createCharacter(
 }
 
 // ---------------------------------------------------------------------------
+// Spells
+// ---------------------------------------------------------------------------
+
+export type Spell = { id: string; name: string; level: number; school: string };
+
+/**
+ * Every spell in the compendium, global reference data (not campaign-
+ * scoped — see supabase/migrations/0009_spells.sql). No per-character
+ * "known spells" filter yet, so this is the full list either way.
+ */
+export async function getSpells(): Promise<Spell[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("spells")
+    .select("id, name, level, school")
+    .order("level", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
 
@@ -577,6 +600,73 @@ export async function proposeNarrationEvent(
   }
 
   const supabase = await createClient();
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for casting a spell. `spellName` is
+ * denormalized from the spells table into the payload at cast time (the
+ * event describes what actually happened, independent of whether that
+ * spells row changes later) — everything else about legality (does the
+ * caster know this spell, do they have the slot) isn't checked yet, the
+ * same "shape, not legality" line every other event type draws today.
+ */
+export async function proposeCastEvent(
+  sessionId: string,
+  casterId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const spellId = String(formData.get("spellId") ?? "");
+  const targetIds = formData.getAll("targetIds").map(String).filter(Boolean);
+  const slotLevelRaw = formData.get("slotLevel");
+  const slotLevel = slotLevelRaw && String(slotLevelRaw).trim() !== "" ? Number(slotLevelRaw) : null;
+  const concentration = formData.get("concentration") === "true";
+
+  if (!spellId) {
+    return { error: "Pick a spell." };
+  }
+  if (targetIds.length === 0) {
+    return { error: "Pick at least one target." };
+  }
+  if (slotLevel !== null && (!Number.isInteger(slotLevel) || slotLevel < 0 || slotLevel > 9)) {
+    return { error: "Slot level must be a whole number from 0 to 9." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: spell, error: spellError } = await supabase
+    .from("spells")
+    .select("name")
+    .eq("id", spellId)
+    .maybeSingle();
+
+  if (spellError || !spell) {
+    return { error: "Couldn't find that spell." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "cast",
+    actor: null,
+    payload: {
+      v: 1,
+      spellId,
+      spellName: spell.name,
+      casterId,
+      targetIds,
+      slotLevel,
+      concentration,
+    },
+    visibility: readVisibility(formData),
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
   return insertEvent(supabase, candidate.data);
 }
 

@@ -1,24 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import type { PartyMember } from "@/app/dm/actions";
+import type { PartyMember, Spell } from "@/app/dm/actions";
 import { AttackComposer } from "@/components/attack-composer";
 import { DamageHealComposer } from "@/components/damage-heal-composer";
 import { ConditionComposer } from "@/components/condition-composer";
 import { LootComposer } from "@/components/loot-composer";
+import { CastComposer } from "@/components/cast-composer";
 
 /**
- * The DM console's attack/damage/heal/condition composers, plus the pickers
- * that decide who they act on. Attacker/target selection is in-page state
- * (a session of "who am I acting on right now" changes far more often than
- * the page itself), unlike the campaign switcher, which is real navigation.
+ * The DM console's attack/damage/heal/condition/cast composers, plus the
+ * pickers that decide who they act on. Attacker/target selection is in-page
+ * state (a session of "who am I acting on right now" changes far more often
+ * than the page itself), unlike the campaign switcher, which is real
+ * navigation. The Attacker picker doubles as "caster" for Cast.
  */
 export function TargetedComposers({
   sessionId,
   members,
+  spells,
 }: {
   sessionId: string;
   members: PartyMember[];
+  spells: Spell[];
 }) {
   const [targetId, setTargetId] = useState(members[0]?.characterId ?? "");
   const [attackerId, setAttackerId] = useState(members[0]?.characterId ?? "");
@@ -81,6 +85,13 @@ export function TargetedComposers({
       <DamageHealComposer sessionId={sessionId} targetId={targetId} members={members} />
       <ConditionComposer sessionId={sessionId} targetId={targetId} members={members} />
       <LootComposer sessionId={sessionId} targetId={targetId} members={members} />
+      <CastComposer
+        sessionId={sessionId}
+        casterId={attackerId}
+        targetId={targetId}
+        spells={spells}
+        members={members}
+      />
     </div>
   );
 }

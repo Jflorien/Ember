@@ -77,6 +77,8 @@ export type ProposedBy = z.infer<typeof proposedBySchema>;
 const castPayloadSchema = z.object({
   v: z.literal(1),
   spellId: z.string(),
+  /** Denormalized at cast time — the event describes what was actually cast, even if the spells table entry changes or is removed later. */
+  spellName: z.string(),
   casterId: z.string(),
   targetIds: z.array(z.string()).min(1),
   /** null = cantrip, cast at no slot level */

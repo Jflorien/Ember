@@ -94,20 +94,28 @@ and never on behalf of a character they don't own.
   are still blocked on systems that don't exist (a stat-block system, the AI
   DM itself). `/play`'s Core Character Stats panel is HP + conditions only —
   ability scores, saves, and passive perception have no data model yet, and
-  Actions & Spells needs real spell/ability content that isn't seeded.
+  Actions & Spells has real spell content behind it now (see below) but no
+  spell *browser* UI on `/play` yet.
 - Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
   event's *shape* via zod, and a database trigger
   (`supabase/migrations/0004_validate_event_targets.sql`, widened to cover
-  `attack` in `0005`, `loot` in `0007`, and `move` in
-  `0008_map_grid_events.sql`) rejects a `damage`/`heal`/`condition`/`attack`/
-  `loot` event whose target isn't a real character in the same campaign, or
-  a `move` event whose actor isn't, but nothing checks legality beyond that
-  (e.g. that an attack's target is in range, or that a hit actually deals
-  damage — that's still a separate manual event). `narration`, `damage`,
-  `heal`, `condition`, `attack`, `round`, `loot`, `terrain`, and `move`
-  events have a UI; `cast`, `destroy`, `death`, and `reveal` are still
-  unused (mostly blocked on spell content or a "character is down" state).
-  A map/grid primitive backs `terrain`/`move`: no new tables, terrain and
+  `attack` in `0005`, `loot` in `0007`, and `move` in `0008`) rejects a
+  `damage`/`heal`/`condition`/`attack`/`loot` event whose target isn't a
+  real character in the same campaign, or a `move` event whose actor isn't,
+  but nothing checks legality beyond that (e.g. that an attack's target is
+  in range, that a hit actually deals damage, or that a caster has the
+  spell slot it's spending — all still separate manual steps or unenforced).
+  `cast` doesn't have this trigger yet — its `targetIds` is an array, not a
+  single `targetId`, so it doesn't fit the existing check without a rewrite.
+  `narration`, `damage`, `heal`, `condition`, `attack`, `round`, `loot`,
+  `terrain`, `move`, and `cast` events have a UI now; only `destroy`,
+  `death`, and `reveal` are still unused (`destroy`/`reveal` could reuse the
+  grid that now exists; `death` needs a real "character is down" state).
+  Spells are real: `spells` (`supabase/migrations/0009_spells.sql`), global
+  reference data — 15 real SRD 5.2.1 spells plus one original
+  (`source: 'srd' | 'original'`), no per-character known-spells list or
+  slot tracking, so any caster can pick any spell freely. A map/grid
+  primitive backs `terrain`/`move`: no new tables, terrain and
   character position are both folds over committed events, same as
   everything else. `MapGrid` (`src/components/map-grid.tsx`) is read-only
   on `/table` and interactive on `/dm` (`MapControlPanel`) via a Move/

@@ -27,6 +27,14 @@ export function describeEvent(event: DescribableEvent): string {
     }
   }
 
+  if (event.type === "cast" && typeof payload.spellName === "string") {
+    const targetCount = Array.isArray(payload.targetIds) ? payload.targetIds.length : 0;
+    const slotLevel = payload.slotLevel;
+    const level = typeof slotLevel === "number" ? `slot ${slotLevel}` : "cantrip";
+    const targets = targetCount === 1 ? "1 target" : `${targetCount} targets`;
+    return `Cast: ${payload.spellName} (${level}) — ${targets}`;
+  }
+
   if (event.type === "loot" && Array.isArray(payload.items)) {
     const items = payload.items as Array<{ name?: unknown; quantity?: unknown }>;
     const summary = items

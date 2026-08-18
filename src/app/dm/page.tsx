@@ -5,6 +5,7 @@ import {
   getMyDmCampaigns,
   getPartyMembers,
   getCampaignMembers,
+  getSpells,
 } from "@/app/dm/actions";
 import { CreateCampaignForm } from "@/components/create-campaign-form";
 import { InviteCodeDisplay } from "@/components/invite-code-display";
@@ -96,6 +97,7 @@ async function DmConsoleBody({
 }) {
   const members = await getPartyMembers(campaignId);
   const campaignMembers = await getCampaignMembers(campaignId);
+  const spells = await getSpells();
 
   return (
     <>
@@ -134,7 +136,7 @@ async function DmConsoleBody({
 
       <PanelSection title="Event Console">
         <EventComposer sessionId={sessionId} members={members} />
-        <TargetedComposers sessionId={sessionId} members={members} />
+        <TargetedComposers sessionId={sessionId} members={members} spells={spells} />
       </PanelSection>
 
       <PanelSection title="Session Log">
