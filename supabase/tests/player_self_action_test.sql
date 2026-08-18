@@ -127,8 +127,33 @@ exception
     end if;
 end $$;
 
+-- Cast where the player owns the caster: allowed.
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01SEFACTNJJJJJJJJJJJJJJJJJ', '40404040-4040-4040-4040-404040404040', 'cast', null,
+  '{"v":1,"spellId":"00000000-0000-0000-0000-000000000000","spellName":"Test Spell","casterId":"50505050-5050-5050-5050-505050505050","targetIds":["60606060-6060-6060-6060-606060606060"],"slotLevel":null,"concentration":false}'::jsonb,
+  'public', 'human'
+);
+
+-- Cast where the player does NOT own the caster: rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01SEFACTNKKKKKKKKKKKKKKKKK', '40404040-4040-4040-4040-404040404040', 'cast', null,
+    '{"v":1,"spellId":"00000000-0000-0000-0000-000000000000","spellName":"Test Spell","casterId":"60606060-6060-6060-6060-606060606060","targetIds":["50505050-5050-5050-5050-505050505050"],"slotLevel":null,"concentration":false}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: player cast with a character they do not own';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 -- Narration from a non-DM player: rejected — the new policy only widens
--- attack/damage/heal/condition/move, nothing else.
+-- attack/damage/heal/condition/move/cast, nothing else.
 do $$
 begin
   insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)

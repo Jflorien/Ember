@@ -5,6 +5,7 @@ import {
   getMyPlayerCampaigns,
   getMyCharacter,
   getPartyMembers,
+  getSpells,
 } from "@/app/dm/actions";
 import { JoinCampaignForm } from "@/components/join-campaign-form";
 import { CreateCharacterForm } from "@/components/create-character-form";
@@ -78,6 +79,7 @@ async function PlayerSheetBody({
   }
 
   const members = await getPartyMembers(campaignId);
+  const spells = await getSpells();
 
   return (
     <>
@@ -122,6 +124,7 @@ async function PlayerSheetBody({
           sessionId={sessionId}
           characterId={character.characterId}
           members={members}
+          spells={spells}
         />
       </div>
     </>

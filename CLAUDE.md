@@ -367,20 +367,27 @@ actually happened even if the spells row changes or is deleted later), and `Cast
 `TargetedComposers`' existing Attacker picker as the caster. No per-character "known spells" list
 or spell-slot tracking exists, so the picker is the full compendium and nothing stops picking a
 spell above the caster's level — matching the same "shape, not full legality" line every other
-event type draws today. DM-only for this pass, unlike attack — `cast` doesn't have the RLS/target-
-validation-trigger treatment (`targetIds` is an array, not a single `targetId`, so it doesn't fit
-the existing single-field check without a rewrite) or a player-self-action path yet. Verified live:
-cast Fireball at slot 3 through the actual `/dm` UI, confirmed the full payload (spell name, slot,
-caster, target) landed correctly, and watched it render on `/table` as
-"Cast: Fireball (slot 3) — 1 target."
+event type draws today. Verified live: cast Fireball at slot 3 through the actual `/dm` UI,
+confirmed the full payload (spell name, slot, caster, target) landed correctly, and watched it
+render on `/table` as "Cast: Fireball (slot 3) — 1 target."
+
+`cast` reached parity with `attack`/`move`/`loot` in a follow-up pass: the target-validation
+trigger widened once more (`supabase/migrations/0010_validate_cast_targets.sql`) with a dedicated
+branch for `cast`, since its shape doesn't fit the single-`targetId` pattern every other type
+uses — `casterId` is one uuid, `targetIds` is an array, so both get checked (caster against the
+session's campaign, then every array entry). The same migration widens
+`events_insert_player_self_action` so a player can cast where they own the caster, and
+`PlayerActionPanel` gained the `CastComposer` — a player can now roll their own spell against
+any target, same shape as their own attacks. Verified live: the trigger rejected a cast naming a
+nonexistent target character on the real project, and a real Magic Missile cast through the
+actual `/play` UI landed with `casterId` correctly set to the player's own character.
 
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
 one automatically), `destroy`/`death`/`reveal` event UI (`destroy` and `reveal` could reuse the
-grid now that it exists; `death` needs a real "character is down" state), target validation and
-player-self-action for `cast` (needs to handle `targetIds` as an array instead of the single-field
-`targetId` every other check assumes), known-spells/spell-slot tracking on the character sheet
+grid now that it exists; `death` needs a real "character is down" state), known-spells/spell-slot
+tracking on the character sheet
 (right now any caster can pick any spell at any slot level), spell slots and inventory more broadly,
 terrain *clearing* (a placed cell can't be removed, only added over), map upload/resize (fixed
 16×10 for now), fog of war, the NPC/monster/encounter-staging/AI-co-pilot panels from the DM
@@ -474,6 +481,12 @@ perception — no data model yet) and the rest of the Actions & Spells panel (sp
     or spell-slot tracking yet, so any caster can pick any spell freely — the same "shape, not full
     legality" line every other event type draws. Verified live: cast Fireball at slot 3 through the
     actual `/dm` UI, confirmed the full payload landed correctly, and watched it render on `/table`.
+16. ~~Cast target validation + player self-cast.~~ Done — brought `cast` to parity with
+    `attack`/`move`/`loot`. The target-validation trigger widened again for `cast`'s
+    array-shaped `targetIds` (`0010_validate_cast_targets.sql`), and a player can now cast with
+    their own character via the same self-action RLS policy attack/move already use. Verified
+    live: the trigger rejected a cast naming a nonexistent character on the real project, and a
+    real Magic Missile cast through the actual `/play` UI landed with the correct caster.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

@@ -99,18 +99,22 @@ and never on behalf of a character they don't own.
 - Most of the rules engine — `src/app/dm/actions.ts` validates a proposed
   event's *shape* via zod, and a database trigger
   (`supabase/migrations/0004_validate_event_targets.sql`, widened to cover
-  `attack` in `0005`, `loot` in `0007`, and `move` in `0008`) rejects a
-  `damage`/`heal`/`condition`/`attack`/`loot` event whose target isn't a
-  real character in the same campaign, or a `move` event whose actor isn't,
-  but nothing checks legality beyond that (e.g. that an attack's target is
-  in range, that a hit actually deals damage, or that a caster has the
-  spell slot it's spending — all still separate manual steps or unenforced).
-  `cast` doesn't have this trigger yet — its `targetIds` is an array, not a
-  single `targetId`, so it doesn't fit the existing check without a rewrite.
-  `narration`, `damage`, `heal`, `condition`, `attack`, `round`, `loot`,
-  `terrain`, `move`, and `cast` events have a UI now; only `destroy`,
-  `death`, and `reveal` are still unused (`destroy`/`reveal` could reuse the
-  grid that now exists; `death` needs a real "character is down" state).
+  `attack` in `0005`, `loot` in `0007`, `move` in `0008`, and `cast` in
+  `0010`) rejects a `damage`/`heal`/`condition`/`attack`/`loot` event whose
+  target isn't a real character in the same campaign, a `move` event whose
+  actor isn't, or a `cast` event whose caster or any target isn't (`cast`
+  needed its own branch — `targetIds` is an array, not a single
+  `targetId`), but nothing checks legality beyond that (e.g. that an
+  attack's target is in range, that a hit actually deals damage, or that a
+  caster has the spell slot it's spending — all still separate manual
+  steps or unenforced). `narration`, `damage`, `heal`, `condition`,
+  `attack`, `round`, `loot`, `terrain`, `move`, and `cast` events have a UI
+  now; only `destroy`, `death`, and `reveal` are still unused
+  (`destroy`/`reveal` could reuse the grid that now exists; `death` needs
+  a real "character is down" state). A player can propose their own
+  `attack`, `move`, or `cast` (not just self-report `damage`/`heal`/
+  `condition`) via `events_insert_player_self_action` — see
+  `PlayerActionPanel` and `CastComposer` on `/play`.
   Spells are real: `spells` (`supabase/migrations/0009_spells.sql`), global
   reference data — 15 real SRD 5.2.1 spells plus one original
   (`source: 'srd' | 'original'`), no per-character known-spells list or

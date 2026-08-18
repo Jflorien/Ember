@@ -176,6 +176,49 @@ exception
     end if;
 end $$;
 
+-- Cast with a caster and target both in this session's campaign: allowed
+-- (0010_validate_cast_targets.sql adds the array-aware check for cast).
+insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+values (
+  '01TARGETTESTMMMMMMMMMMMMMM', '44444444-4444-4444-4444-444444444444', 'cast', null,
+  '{"v":1,"spellId":"00000000-0000-0000-0000-000000000000","spellName":"Test Spell","casterId":"55555555-5555-5555-5555-555555555555","targetIds":["55555555-5555-5555-5555-555555555555"],"slotLevel":null,"concentration":false}'::jsonb,
+  'public', 'human'
+);
+
+-- Cast where the caster is from a *different* campaign: must be rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01TARGETTESTNNNNNNNNNNNNNN', '44444444-4444-4444-4444-444444444444', 'cast', null,
+    '{"v":1,"spellId":"00000000-0000-0000-0000-000000000000","spellName":"Test Spell","casterId":"66666666-6666-6666-6666-666666666666","targetIds":["55555555-5555-5555-5555-555555555555"],"slotLevel":null,"concentration":false}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: cast with a caster from a different campaign was accepted';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
+-- Cast where a targetIds entry is from a *different* campaign: must be rejected.
+do $$
+begin
+  insert into public.events (id, session_id, type, actor, payload, visibility, proposed_by)
+  values (
+    '01TARGETTESTPPPPPPPPPPPPPP', '44444444-4444-4444-4444-444444444444', 'cast', null,
+    '{"v":1,"spellId":"00000000-0000-0000-0000-000000000000","spellName":"Test Spell","casterId":"55555555-5555-5555-5555-555555555555","targetIds":["66666666-6666-6666-6666-666666666666"],"slotLevel":null,"concentration":false}'::jsonb,
+    'public', 'human'
+  );
+  raise exception 'ASSERTION FAILED: cast with a target from a different campaign was accepted';
+exception
+  when others then
+    if sqlerrm like 'ASSERTION FAILED%' then
+      raise;
+    end if;
+end $$;
+
 rollback;
 
 select 'event target validation test passed' as result;
