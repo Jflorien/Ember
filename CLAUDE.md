@@ -19,6 +19,12 @@ Environment: copy `.env.example` to `.env.local` and fill in Supabase URL + anon
 The build is designed to succeed with no env vars set (env is read lazily inside functions),
 so never reintroduce module-level env reads.
 
+`next build` and `next dev` share `.next` by default — running a verification build while a dev
+server is live corrupts its cached chunks (missing-module / "Unexpected end of JSON input" errors
+in the browser until the dev server restarts). `next.config.ts` reads `NEXT_BUILD_DIR` to redirect
+a verification build elsewhere: `NEXT_BUILD_DIR=.next-verify npm run build` leaves a running dev
+server untouched. CI and real builds don't set it, so they're unaffected.
+
 ---
 
 ## The one rule that matters
