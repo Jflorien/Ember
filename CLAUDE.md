@@ -388,18 +388,34 @@ any target, same shape as their own attacks. Verified live: the trigger rejected
 nonexistent target character on the real project, and a real Magic Missile cast through the
 actual `/play` UI landed with `casterId` correctly set to the player's own character.
 
+`destroy` and `reveal` are wired end to end too, both reusing existing primitives rather than
+adding anything new. `destroyPayloadSchema` changed shape from `targetId` (a character reference
+that never made sense for a destructible prop) to `cell` — the same `{x, y}` shape `terrain`
+already uses. `proposeDestroyEvent` checks server-side that the cell's *current* terrain (the
+last committed `terrain` event for it) is actually marked `destructible` before committing,
+never trusted from the client. `useSessionTerrain` folds `destroy` by clearing the cell — which
+also closes the earlier "terrain clearing" gap, since destroying *is* how a cell gets cleared;
+there's still no separate "just clear this, nothing was destroyed" action. `MapControlPanel`
+gained a third Destroy mode alongside Move/Terrain. Separately, `revealEvent` — previously a
+shortcut that emitted a synthetic `narration` event — now emits a real `type: "reveal"` event
+using the schema that was already defined for it, with a denormalized `description` field (same
+reasoning as attack's seed/rawRolls) so `/table` can render it without joining back to an event
+that's still `dm_only` to everyone but the DM. Verified live: placed a destructible prop, watched
+it disappear from `/table`'s actual rendered grid after destroying it (not just the DB), and
+confirmed Reveal now commits a `reveal` row with the right shape and still renders correctly.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
-one automatically), `destroy`/`death`/`reveal` event UI (`destroy` and `reveal` could reuse the
-grid now that it exists; `death` needs a real "character is down" state), known-spells/spell-slot
-tracking on the character sheet
-(right now any caster can pick any spell at any slot level), spell slots and inventory more broadly,
-terrain *clearing* (a placed cell can't be removed, only added over), map upload/resize (fixed
-16×10 for now), fog of war, the NPC/monster/encounter-staging/AI-co-pilot panels from the DM
-console spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive
-perception — no data model yet) and the rest of the Actions & Spells panel (spell *browsing* on
-`/play` — the compendium exists now, but nothing surfaces it there yet), anything AI.
+one automatically), `death` (needs a real "character is down" state — distinct from the existing
+`unconscious` condition pill), `reveal`'s *map-area* half (`area` on the payload is wired but
+nothing uses it yet — that's fog of war, which needs cells to have a default-hidden state per
+player first), known-spells/spell-slot tracking on the character sheet (right now any caster can
+pick any spell at any slot level), spell slots and inventory more broadly, map upload/resize
+(fixed 16×10 for now), the NPC/monster/encounter-staging/AI-co-pilot panels from the DM console
+spec, the player app's Core Character Stats beyond HP (ability scores, saves, passive perception
+— no data model yet) and the rest of the Actions & Spells panel (spell *browsing* on `/play` —
+the compendium exists now, but nothing surfaces it there yet), anything AI.
 
 ### Next, in order
 
@@ -493,6 +509,13 @@ perception — no data model yet) and the rest of the Actions & Spells panel (sp
     their own character via the same self-action RLS policy attack/move already use. Verified
     live: the trigger rejected a cast naming a nonexistent character on the real project, and a
     real Magic Missile cast through the actual `/play` UI landed with the correct caster.
+17. ~~destroy + reveal.~~ Done — both reuse existing primitives rather than adding anything new.
+    `destroy` now addresses a grid `cell` instead of a character `targetId`, checked server-side
+    against the cell's current `destructible` flag; folding it also closes the earlier "terrain
+    clearing" gap. `reveal` replaced its narration-emitting shortcut with the real `reveal` event
+    type the schema already defined. Verified live: a destructible prop placed and then destroyed,
+    confirmed gone from `/table`'s actual rendered grid; Reveal confirmed committing a real
+    `reveal` row and still rendering correctly.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

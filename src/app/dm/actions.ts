@@ -672,10 +672,14 @@ export async function proposeCastEvent(
 
 /**
  * DM Console Panels' "Reveal to party" action: emits a *new* public
- * narration describing a dm_only event, rather than mutating the hidden
- * one's visibility — the log stays append-only either way. Scoped to
- * dm_only only; player:<uuid> events already have an intended single
- * audience, so "reveal to everyone" isn't the same action for those.
+ * `reveal` event describing a dm_only event, rather than mutating the
+ * hidden one's visibility — the log stays append-only either way.
+ * `targetEventId` links back to what was revealed; `description` is
+ * denormalized at reveal time (same reasoning as attack's seed/rawRolls)
+ * so `/table` can render it without a join back to an event that's still
+ * dm_only to everyone but the DM. Scoped to dm_only only; player:<uuid>
+ * events already have an intended single audience, so "reveal to
+ * everyone" isn't the same action for those.
  */
 export async function revealEvent(
   sessionId: string,
@@ -697,14 +701,16 @@ export async function revealEvent(
     return { error: "Only a dm_only event can be revealed this way." };
   }
 
-  const text = `Revealed: ${describeEvent(original as { type: string; payload: Record<string, unknown> })}`;
+  const description = describeEvent(
+    original as { type: string; payload: Record<string, unknown> },
+  );
 
   const candidate = proposedGameEventSchema.safeParse({
     id: newEventId(),
     session_id: sessionId,
-    type: "narration",
+    type: "reveal",
     actor: null,
-    payload: { v: 1, text },
+    payload: { v: 1, targetEventId: eventId, area: null, toVisibility: "public", description },
     visibility: "public",
     proposed_by: "human",
   });
@@ -1044,6 +1050,66 @@ export async function proposeMoveEvent(
     type: "move",
     actor: null,
     payload: { v: 1, actorId, from, to, feetSpent, feetRemaining: 0 },
+    visibility: "public",
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * Propose → validate → commit, for destroying a destructible prop. Checks
+ * server-side that the cell's *current* terrain (the last committed
+ * `terrain` event for it) is actually marked destructible — never trusted
+ * from the client, same "don't trust the client" shape as move's `from`.
+ * useSessionTerrain folds this by clearing the cell, which is also how
+ * terrain gets un-placed — there's no separate "clear" event.
+ */
+export async function proposeDestroyEvent(
+  sessionId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const x = Number(formData.get("x"));
+  const y = Number(formData.get("y"));
+  const cause = String(formData.get("cause") ?? "").trim() || null;
+
+  if (!Number.isInteger(x) || !Number.isInteger(y)) {
+    return { error: "Invalid cell." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: lastTerrain, error: lastTerrainError } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("session_id", sessionId)
+    .eq("type", "terrain")
+    .eq("payload->cell->>x", String(x))
+    .eq("payload->cell->>y", String(y))
+    .order("seq", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastTerrainError) {
+    return { error: lastTerrainError.message };
+  }
+
+  const terrain = lastTerrain?.payload as { destructible?: boolean } | null;
+  if (!terrain || !terrain.destructible) {
+    return { error: "That cell has no destructible terrain." };
+  }
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "destroy",
+    actor: null,
+    payload: { v: 1, cell: { x, y }, cause },
     visibility: "public",
     proposed_by: "human",
   });

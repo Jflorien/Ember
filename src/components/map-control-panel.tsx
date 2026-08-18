@@ -4,6 +4,7 @@ import { useState, useActionState } from "react";
 import {
   proposePlaceTerrainEvent,
   proposeMoveEvent,
+  proposeDestroyEvent,
   type EventActionState,
   type PartyMember,
 } from "@/app/dm/actions";
@@ -16,9 +17,10 @@ const TERRAIN_TYPES: TerrainType[] = ["wall", "difficult", "hazard", "prop"];
 
 /**
  * DM Console Panels §4, "Live Table / Map Control" — the DM's real-time
- * authority over the shared map. Two modes on one grid: click to place
- * terrain, or click to move the selected character. Map state is never
- * stored — MapGrid renders the same terrain/position folds /table reads.
+ * authority over the shared map. Three modes on one grid: click to place
+ * terrain, move the selected character, or destroy a destructible prop.
+ * Map state is never stored — MapGrid renders the same terrain/position
+ * folds /table reads.
  */
 export function MapControlPanel({
   sessionId,
@@ -30,7 +32,7 @@ export function MapControlPanel({
   const terrain = useSessionTerrain(sessionId);
   const positions = useCharacterPositions(sessionId);
 
-  const [mode, setMode] = useState<"move" | "terrain">("move");
+  const [mode, setMode] = useState<"move" | "terrain" | "destroy">("move");
   const [terrainType, setTerrainType] = useState<TerrainType>("wall");
   const [actorId, setActorId] = useState(members[0]?.characterId ?? "");
 
@@ -38,6 +40,10 @@ export function MapControlPanel({
   const [terrainState, terrainFormAction] = useActionState(terrainAction, initialState);
   const moveAction = proposeMoveEvent.bind(null, sessionId, actorId);
   const [moveState, moveFormAction] = useActionState(moveAction, initialState);
+  const [destroyState, destroyFormAction] = useActionState(
+    proposeDestroyEvent.bind(null, sessionId),
+    initialState,
+  );
 
   function handleCellClick(x: number, y: number) {
     const formData = new FormData();
@@ -47,6 +53,8 @@ export function MapControlPanel({
       formData.set("terrainType", terrainType);
       formData.set("destructible", terrainType === "prop" ? "true" : "false");
       terrainFormAction(formData);
+    } else if (mode === "destroy") {
+      destroyFormAction(formData);
     } else {
       moveFormAction(formData);
     }
@@ -84,9 +92,19 @@ export function MapControlPanel({
           >
             Terrain
           </button>
+          <button
+            type="button"
+            onClick={() => setMode("destroy")}
+            className={
+              "px-3 py-1.5 text-xs font-semibold " +
+              (mode === "destroy" ? "btn btn-forge" : "btn btn-iron")
+            }
+          >
+            Destroy
+          </button>
         </div>
 
-        {mode === "move" ? (
+        {mode === "move" && (
           <select
             value={actorId}
             onChange={(event) => setActorId(event.target.value)}
@@ -98,7 +116,9 @@ export function MapControlPanel({
               </option>
             ))}
           </select>
-        ) : (
+        )}
+
+        {mode === "terrain" && (
           <select
             value={terrainType}
             onChange={(event) => setTerrainType(event.target.value as TerrainType)}
@@ -113,7 +133,9 @@ export function MapControlPanel({
         )}
 
         <span className="text-xs text-ash-500">
-          {mode === "move" ? "Click a cell to move the selected character." : "Click a cell to place terrain."}
+          {mode === "move" && "Click a cell to move the selected character."}
+          {mode === "terrain" && "Click a cell to place terrain."}
+          {mode === "destroy" && "Click a destructible cell (props only) to destroy it."}
         </span>
       </div>
 
@@ -125,9 +147,9 @@ export function MapControlPanel({
         interactive
       />
 
-      {(terrainState.error || moveState.error) && (
+      {(terrainState.error || moveState.error || destroyState.error) && (
         <p className="text-sm text-[#ff8f92]" role="alert">
-          {terrainState.error || moveState.error}
+          {terrainState.error || moveState.error || destroyState.error}
         </p>
       )}
     </div>

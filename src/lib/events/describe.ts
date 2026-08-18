@@ -35,6 +35,15 @@ export function describeEvent(event: DescribableEvent): string {
     return `Cast: ${payload.spellName} (${level}) — ${targets}`;
   }
 
+  if (event.type === "destroy") {
+    const cause = typeof payload.cause === "string" ? payload.cause : null;
+    return cause ? `Destroyed: ${cause}` : "Destroyed: terrain gave way";
+  }
+
+  if (event.type === "reveal" && typeof payload.description === "string") {
+    return `Revealed: ${payload.description}`;
+  }
+
   if (event.type === "loot" && Array.isArray(payload.items)) {
     const items = payload.items as Array<{ name?: unknown; quantity?: unknown }>;
     const summary = items

@@ -147,9 +147,14 @@ const terrainPayloadSchema = z.object({
   destructible: z.boolean(),
 });
 
+/**
+ * Destructible props live on the grid, not the character roster, so this
+ * addresses a cell — the same `destructible` flag a `terrain` event places
+ * — rather than a character's targetId.
+ */
 const destroyPayloadSchema = z.object({
   v: z.literal(1),
-  targetId: z.string(),
+  cell: positionSchema,
   cause: z.string().nullable(),
 });
 
@@ -170,6 +175,8 @@ const revealPayloadSchema = z.object({
   targetEventId: z.string().nullable(),
   area: z.array(positionSchema).nullable(),
   toVisibility: visibilitySchema,
+  /** Denormalized summary of what's being revealed, same reasoning as attack's seed/rawRolls — displayable without a join back to the (still dm_only) original event. */
+  description: z.string().nullable(),
 });
 
 const lootPayloadSchema = z.object({

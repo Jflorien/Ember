@@ -108,24 +108,27 @@ and never on behalf of a character they don't own.
   attack's target is in range, that a hit actually deals damage, or that a
   caster has the spell slot it's spending — all still separate manual
   steps or unenforced). `narration`, `damage`, `heal`, `condition`,
-  `attack`, `round`, `loot`, `terrain`, `move`, and `cast` events have a UI
-  now; only `destroy`, `death`, and `reveal` are still unused
-  (`destroy`/`reveal` could reuse the grid that now exists; `death` needs
-  a real "character is down" state). A player can propose their own
-  `attack`, `move`, or `cast` (not just self-report `damage`/`heal`/
-  `condition`) via `events_insert_player_self_action` — see
-  `PlayerActionPanel` and `CastComposer` on `/play`.
+  `attack`, `round`, `loot`, `terrain`, `move`, `cast`, `destroy`, and
+  `reveal` events have a UI now; only `death` is still unused (needs a
+  real "character is down" state, distinct from the existing
+  `unconscious` condition pill). `reveal`'s *map-area* half (the `area`
+  field) is wired but unused — that's fog of war, which needs cells to
+  have a default-hidden state per player first. A player can propose
+  their own `attack`, `move`, or `cast` (not just self-report
+  `damage`/`heal`/`condition`) via `events_insert_player_self_action` —
+  see `PlayerActionPanel` and `CastComposer` on `/play`.
   Spells are real: `spells` (`supabase/migrations/0009_spells.sql`), global
   reference data — 15 real SRD 5.2.1 spells plus one original
   (`source: 'srd' | 'original'`), no per-character known-spells list or
   slot tracking, so any caster can pick any spell freely. A map/grid
-  primitive backs `terrain`/`move`: no new tables, terrain and
+  primitive backs `terrain`/`move`/`destroy`: no new tables, terrain and
   character position are both folds over committed events, same as
-  everything else. `MapGrid` (`src/components/map-grid.tsx`) is read-only
-  on `/table` and interactive on `/dm` (`MapControlPanel`) via a Move/
-  Terrain mode toggle over a fixed 16×10 grid — no map upload/resize, no
-  terrain clearing (only adding), no fog of war yet. Dice are rolled
-  server-side via a seeded PRNG
+  everything else — `destroy` folds by clearing a cell, which is also
+  the only way a placed cell gets removed (there's no separate "clear"
+  action). `MapGrid` (`src/components/map-grid.tsx`) is read-only on
+  `/table` and interactive on `/dm` (`MapControlPanel`) via a
+  Move/Terrain/Destroy mode toggle over a fixed 16×10 grid — no map
+  upload/resize yet. Dice are rolled server-side via a seeded PRNG
   (`src/lib/dice.ts`) — the seed and every raw roll are committed as part of
   the event payload, so an attack roll is auditable without a separate log.
   The round counter (`RoundTracker` on `/dm`, read-only `RoundBadge` on
