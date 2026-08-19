@@ -7,6 +7,7 @@ import { DamageHealComposer } from "@/components/damage-heal-composer";
 import { ConditionComposer } from "@/components/condition-composer";
 import { LootComposer } from "@/components/loot-composer";
 import { CastComposer } from "@/components/cast-composer";
+import { DeathComposer } from "@/components/death-composer";
 
 /**
  * The DM console's attack/damage/heal/condition/cast composers, plus the
@@ -90,6 +91,14 @@ export function TargetedComposers({
         casterId={attackerId}
         targetId={targetId}
         spells={spells}
+        members={members}
+      />
+      <DeathComposer
+        sessionId={sessionId}
+        targetId={targetId}
+        targetName={
+          members.find((member) => member.characterId === targetId)?.name ?? "this character"
+        }
         members={members}
       />
     </div>

@@ -1,143 +1,128 @@
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
-import {
-  getMyPlayerCampaign,
-  getMyPlayerCampaigns,
-  getMyCharacter,
-  getPartyMembers,
-  getSpells,
-} from "@/app/dm/actions";
-import { JoinCampaignForm } from "@/components/join-campaign-form";
-import { CreateCharacterForm } from "@/components/create-character-form";
-import { CampaignSwitcher } from "@/components/campaign-switcher";
-import { CharacterHp } from "@/components/character-hp";
-import { CharacterConditions } from "@/components/character-conditions";
-import { PartyStatusStrip } from "@/components/party-status-strip";
-import { RoundBadge } from "@/components/round-badge";
-import { PlayerActionPanel } from "@/components/player-action-panel";
-import { CharacterPortraitUpload } from "@/components/character-portrait-upload";
-import { CoreCharacterStats } from "@/components/core-character-stats";
+import Link from "next/link";
+import { getMyPlayerCampaigns, getMyCharacters } from "@/app/dm/actions";
+import { PortraitThumb } from "@/components/portrait-thumb";
 
-// This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
 
-export default async function PlayerAppPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ campaign?: string; join?: string }>;
-}) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/**
+ * Player Home / Landing Panel (Player Meta Panels, Notion): the hub a
+ * logged-in player lands on — campaigns they're in, a roster summary, and
+ * the quick actions that reach the other tabs. Session status, DM name and
+ * next-session date from that spec aren't here: `sessions.status` exists but
+ * nothing sets it beyond 'active', and there's no scheduling model at all.
+ */
+export default async function PlayerHomePage() {
+  const [campaigns, characters] = await Promise.all([
+    getMyPlayerCampaigns(),
+    getMyCharacters(),
+  ]);
 
-  const { campaign: campaignIdParam, join: isJoining } = await searchParams;
-  const campaigns = await getMyPlayerCampaigns();
-  const campaign = isJoining === "1" ? null : await getMyPlayerCampaign(campaignIdParam);
-
-  return (
-    <main className="flex min-h-screen flex-col bg-basalt-950">
-      <header className="flex items-center justify-between border-b border-basalt-700 px-6 py-4">
-        <span className="runic hot">Ember / Player App</span>
-        <form action={signOut}>
-          <button type="submit" className="text-sm text-ash-400 hover:text-ash-100">
-            {user?.email ?? "Log out"} — Sign out
-          </button>
-        </form>
-      </header>
-
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-6 py-16">
-        {campaigns.length > 0 && (
-          <CampaignSwitcher
-            campaigns={campaigns}
-            activeId={campaign?.id ?? ""}
-            basePath="/play"
-            newHref="/play?join=1"
-            newLabel="Join another"
-          />
-        )}
-
-        {!campaign ? (
-          <JoinCampaignForm />
-        ) : (
-          <PlayerSheetBody campaignId={campaign.id} sessionId={campaign.sessionId} />
-        )}
-      </div>
-    </main>
-  );
-}
-
-async function PlayerSheetBody({
-  campaignId,
-  sessionId,
-}: {
-  campaignId: string;
-  sessionId: string;
-}) {
-  const character = await getMyCharacter(campaignId);
-
-  if (!character) {
-    return <CreateCharacterForm campaignId={campaignId} />;
-  }
-
-  const members = await getPartyMembers(campaignId);
-  const spells = await getSpells();
+  const living = characters.filter((character) => !character.dead);
 
   return (
     <>
       <div>
-        <span className="runic hot">Character sheet — early proof</span>
+        <span className="runic hot">Player dashboard</span>
         <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
-          HP that&rsquo;s never stored.
+          Your table, between sessions.
         </h1>
-        <p className="mt-2 text-sm text-ash-300">
-          This bar isn&rsquo;t a column that got updated — it&rsquo;s
-          recomputed from every <code className="font-mono text-ash-100">damage</code> and{" "}
-          <code className="font-mono text-ash-100">heal</code> event
-          committed for this character, live over Realtime.
-        </p>
       </div>
 
-      <RoundBadge sessionId={sessionId} />
+      <section>
+        <div className="runic mb-3">Your campaigns</div>
+        {campaigns.length === 0 ? (
+          <div className="plate flex flex-col gap-3 p-6">
+            <p className="text-sm text-ash-300">
+              You haven&rsquo;t joined a campaign yet. Ask your DM for their invite code.
+            </p>
+            <Link href="/play/session?join=1" className="btn btn-forge text-center">
+              Join a campaign
+            </Link>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {campaigns.map((campaign) => {
+              const inThis = living.filter(
+                (character) => character.campaignId === campaign.id,
+              );
+              return (
+                <li key={campaign.id} className="plate flex items-center gap-3 p-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-ash-100">
+                      {campaign.name}
+                    </div>
+                    <div className="font-mono text-xs text-ash-500">
+                      {inThis.length > 0
+                        ? inThis.map((character) => character.name).join(", ")
+                        : "No living character here"}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/play/session?campaign=${campaign.id}`}
+                    className="btn btn-iron shrink-0 text-xs"
+                  >
+                    Enter
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-      <div className="plate flex flex-col gap-4 p-6">
-        <CharacterPortraitUpload
-          characterId={character.characterId}
-          currentUrl={character.portraitUrl}
-          name={character.name}
-        />
-        <CharacterHp
-          sessionId={sessionId}
-          characterId={character.characterId}
-          maxHp={character.maxHp}
-          label={
-            character.class ? `Your character — ${character.class}, Lv ${character.level}` : "Your character"
-          }
-        />
-        <div>
-          <div className="runic mb-2">Conditions</div>
-          <CharacterConditions sessionId={sessionId} characterId={character.characterId} />
-        </div>
-      </div>
+      <section>
+        <div className="runic mb-3">Character roster</div>
+        {characters.length === 0 ? (
+          <p className="font-mono text-sm text-ash-500">No characters yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {characters.slice(0, 3).map((character) => (
+              <li key={character.characterId} className="plate flex items-center gap-3 p-3">
+                <PortraitThumb
+                  url={character.portraitUrl}
+                  name={character.name}
+                  size={32}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm text-ash-100">
+                    {character.name}
+                    {character.dead && (
+                      <span className="ml-2 font-mono text-[10px] uppercase text-ash-500">
+                        † dead
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate font-mono text-xs text-ash-500">
+                    {character.class ? `${character.class}, ` : ""}Lv {character.level} ·{" "}
+                    {character.campaignName}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {characters.length > 3 && (
+          <Link
+            href="/play/characters"
+            className="mt-2 inline-block text-xs text-ash-400 hover:text-ash-100"
+          >
+            View all {characters.length} characters →
+          </Link>
+        )}
+      </section>
 
-      <div className="plate p-6">
-        <CoreCharacterStats sheet={character.sheet} level={character.level} />
-      </div>
-
-      <div>
-        <div className="runic mb-3">Party</div>
-        <PartyStatusStrip sessionId={sessionId} members={members} />
-      </div>
-
-      <div>
-        <div className="runic mb-3">Your actions</div>
-        <PlayerActionPanel
-          sessionId={sessionId}
-          characterId={character.characterId}
-          members={members}
-          spells={spells}
-        />
-      </div>
+      <section className="flex flex-col gap-2">
+        <div className="runic mb-1">Quick actions</div>
+        <Link href="/play/characters/new" className="btn btn-iron text-center">
+          Create new character
+        </Link>
+        <Link href="/play/session?join=1" className="btn btn-iron text-center">
+          Join a campaign
+        </Link>
+        <Link href="/play/characters" className="btn btn-iron text-center">
+          View all characters
+        </Link>
+      </section>
     </>
   );
 }

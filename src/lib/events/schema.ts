@@ -162,6 +162,8 @@ const deathPayloadSchema = z.object({
   v: z.literal(1),
   targetId: z.string(),
   cause: z.string().nullable(),
+  /** Denormalized at commit time, same reasoning as cast's spellName — the log should still read correctly if the character row is later deleted. */
+  characterName: z.string().nullable(),
 });
 
 /**

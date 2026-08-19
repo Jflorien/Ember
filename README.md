@@ -57,7 +57,11 @@ actually constructed at request time, not at build time.
 | `/signup`                  | Account creation                                          | Public      |
 | `/auth/callback`           | OAuth / magic-link code exchange (route handler)          | —           |
 | `/dm`                      | DM console shell                                          | Required    |
-| `/play`                    | Player app shell                                          | Required    |
+| `/play`                    | Player dashboard home (campaigns, roster, quick actions)  | Required    |
+| `/play/session`            | The in-session character dashboard                        | Required    |
+| `/play/characters`         | Character roster — living and fallen                      | Required    |
+| `/play/characters/new`     | Character creation                                        | Required    |
+| `/play/account`            | Account settings, data export, account deletion           | Required    |
 | `/table`                   | Chrome-free table view (TV)                                | Public      |
 
 Root `middleware.ts` refreshes the Supabase session on every request and
@@ -108,10 +112,12 @@ and never on behalf of a character they don't own.
   attack's target is in range, that a hit actually deals damage, or that a
   caster has the spell slot it's spending — all still separate manual
   steps or unenforced). `narration`, `damage`, `heal`, `condition`,
-  `attack`, `round`, `loot`, `terrain`, `move`, `cast`, `destroy`, and
-  `reveal` events have a UI now; only `death` is still unused (needs a
-  real "character is down" state, distinct from the existing
-  `unconscious` condition pill). `reveal`'s *map-area* half (the `area`
+  `attack`, `round`, `loot`, `terrain`, `move`, `cast`, `destroy`,
+  `reveal`, and `death` events all have a UI now — every type in the
+  union is implemented. `death` is DM-only (a player can self-report
+  damage, not declare their own character dead) and terminal: there's no
+  revival event, and no "downed but stabilising" state between the
+  `unconscious` condition pill and death. `reveal`'s *map-area* half (the `area`
   field) is wired but unused — that's fog of war, which needs cells to
   have a default-hidden state per player first. A player can propose
   their own `attack`, `move`, or `cast` (not just self-report
@@ -157,7 +163,9 @@ and never on behalf of a character they don't own.
   standard array only; point buy and rolling aren't built. Characters can
   now have a real portrait (`character-portraits` Storage bucket, RLS-gated
   to the character's owner), shown on the sheet and every Party Status Strip
-  tile with an initials fallback when there isn't one yet.
+  tile with an initials fallback when there isn't one yet. There's no
+  post-creation character editor either — the roster can't rename, edit or
+  archive a character once it exists.
 - The AI dungeon master itself. A narration co-pilot exists (`ANTHROPIC_API_KEY`, see
   `.env.example`) — the DM types what should happen and Claude drafts narration text from the
   campaign's recent event log, but it only suggests prose: it never rolls dice, adjudicates, or
@@ -165,7 +173,11 @@ and never on behalf of a character they don't own.
   event `proposed_by: "model"`; editing it (or writing narration from scratch) tags it `"human"`.
 - `/login/forgot-password` calls a real `resetPasswordForEmail` server
   action, but there's no corresponding "set new password" page for the
-  callback to land on yet.
+  callback to land on yet. Signed-in users *can* change their email and
+  password from `/play/account`, which also implements GDPR data export
+  (art. 20) and account deletion (art. 17) — deletion goes through the
+  no-argument `delete_my_account()` RPC, so it can only ever erase its own
+  caller, and it cascades to every campaign that account owns.
 - Email capture on the homepage CTA is intentionally non-functional (styled
   only, per spec) — it doesn't post anywhere.
 - No automated tests.

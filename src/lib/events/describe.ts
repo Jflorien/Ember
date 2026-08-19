@@ -44,6 +44,12 @@ export function describeEvent(event: DescribableEvent): string {
     return `Revealed: ${payload.description}`;
   }
 
+  if (event.type === "death") {
+    const name = typeof payload.characterName === "string" ? payload.characterName : "A character";
+    const cause = typeof payload.cause === "string" ? payload.cause : null;
+    return cause ? `${name} died — ${cause}` : `${name} died`;
+  }
+
   if (event.type === "loot" && Array.isArray(payload.items)) {
     const items = payload.items as Array<{ name?: unknown; quantity?: unknown }>;
     const summary = items

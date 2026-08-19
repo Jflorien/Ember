@@ -54,5 +54,10 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/character_portraits_test.sql
+      - name: Run death + account deletion test
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/death_and_account_deletion_test.sql
       - run: supabase stop
         if: always()

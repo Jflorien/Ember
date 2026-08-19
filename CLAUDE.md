@@ -461,11 +461,70 @@ never excluded from ESLint, so a leftover verification build silently broke `npm
 thousands of unrelated errors from its generated `.d.ts`/`.ts` files — added to `eslint.config.mjs`
 alongside `.next`.
 
+**`/play` is a real dashboard now**, not one page. `src/app/play/layout.tsx` holds the shared
+header and `PlayerNav`, and the app splits into four routes: `/play` (Player Home — campaigns,
+roster summary, quick actions), `/play/session` (the in-session dashboard that used to *be*
+`/play`), `/play/characters` (Character Roster), `/play/characters/new` (creation, previously
+rendered inline on the session screen whenever a player happened to have no character), and
+`/play/account`. Middleware needed no change — it already matches `/play` by prefix. The nav's
+active tab is molten, deliberately *not* forge/gold: the design system reserves gold for "it is
+your turn," which a nav tab never is.
+
+That split needed the **`death` event type**, the last one in the `GameEvent` union with no
+implementation — the roster splits Living from Fallen, and "fallen" has to mean something.
+`deathPayloadSchema` already existed; it gained a denormalized `characterName` (same reasoning as
+cast's `spellName`) so the log still reads correctly if the character row is later deleted.
+`0012_death_and_account_deletion.sql` adds `death` to the target-validation trigger — it carries
+the same single-`targetId` shape as damage/heal/condition/loot, so no new branch was needed,
+unlike `cast` in 0010. It is deliberately **not** added to `events_insert_player_self_action`: a
+player can self-report damage, healing and conditions, but declaring a character dead is the DM's
+call, so `death` stays DM-only. `DeathComposer` (`/dm`, behind a confirm step) is the only writer.
+Death is currently terminal — there's no revival event, so the roster fold reads "any `death`
+event naming this character" as dead rather than last-event-wins; worth revisiting if a real
+raise-dead mechanic ever exists.
+
+**Account settings** (`/play/account`) covers auth plus the two GDPR rights that need real
+implementations rather than a policy page: portability (art. 20) and erasure (art. 17).
+`updateEmail`/`updatePassword` live in `src/app/auth/actions.ts` — the password change
+re-authenticates with the current password first, because Supabase's `updateUser` doesn't require
+it and an open session alone shouldn't be enough to change a password. `exportMyData` returns
+every row this account owns or can read as JSON, assembled through the normal authenticated
+client so RLS decides what's included, and the client turns it into a download. `deleteMyAccount`
+calls `delete_my_account()` (0012) — a `security definer` function taking **no arguments by
+design**, so the only account it can ever delete is `auth.uid()`'s; the project has no
+service-role key configured (it runs on the anon key alone), which is why this is an RPC rather
+than `auth.admin.deleteUser`. Deleting the `auth.users` row cascades to campaigns the account
+owns and everything inside them, so the UI names those campaigns in the warning and requires
+typing the account's own email to confirm.
+
+Verified live throughout: all four tabs rendered against the real project; a `death` committed
+through the real `/dm` UI and confirmed moving Grix Stonefist from Living to Fallen on
+`/play/characters` with the right cause, which also proved the roster's
+`.in("payload->>targetId", ids)` PostgREST filter actually works (a JSON-path `in` filter is
+exactly the kind of thing that silently matches nothing); `describeEvent` rendering it in the
+session log; the data export producing a real blob download with no errors; and
+`delete_my_account()` run against the live project inside a rolled-back transaction, confirming
+it deleted the caller and their character (0/0) while leaving another user and that user's
+campaign untouched (1/1). A CI test (`supabase/tests/death_and_account_deletion_test.sql`) locks
+all of that in, including an assertion that a player *can't* declare death — so a future widening
+of the self-action policy has to break that test on purpose rather than by accident.
+
+Two fixes in passing: joining a campaign left the player sitting on the join form with no sign
+anything had happened — `joinCampaignAction` already had the campaign id back from the RPC and
+was throwing it away, so it now redirects into the session. And a **verification-technique**
+lesson worth keeping: driving the Supabase SQL Editor with ctrl+Return silently does nothing when
+focus isn't in the editor, and scraping the result panel with `document.body.innerText` returns
+the *previous* query's output — together those reported "0 rows" for a `select count(*)`, which
+is impossible and is what exposed it. Three `death` events had committed correctly the whole
+time. Click the Run button and read the result from a screenshot, never from scraped innerText.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
-one automatically), `death` (needs a real "character is down" state — distinct from the existing
-`unconscious` condition pill), `reveal`'s *map-area* half (`area` on the payload is wired but
+one automatically), revival (`death` is terminal — no raise-dead event, and no "downed but
+stabilising" state between the `unconscious` condition pill and death), a post-creation character
+editor (the roster spec's Edit/Archive actions, and its "Archived" status, which needs a state
+that isn't death), `reveal`'s *map-area* half (`area` on the payload is wired but
 nothing uses it yet — that's fog of war, which needs cells to have a default-hidden state per
 player first), known-spells/spell-slot tracking on the character sheet (right now any caster can
 pick any spell at any slot level), spell slots and inventory more broadly, map upload/resize
@@ -606,6 +665,16 @@ mode.
     the Supabase dashboard has no app session cookie) — shipped without that one verification, on
     the same "document the gap honestly" precedent as the AI co-pilot's unverified Claude
     round-trip.
+20. ~~Player dashboard split + death + account settings.~~ Done, on request ("the player app
+    needs a clear division of things... its own dashboard"). `/play` became four routes behind a
+    shared layout and tab nav; `death` shipped end to end because the roster's Living/Fallen
+    split needs it (DM-only, deliberately excluded from the player self-action policy); and
+    `/play/account` covers email/password changes plus real GDPR export and erasure, the latter
+    via a no-argument `security definer` RPC that can only ever delete its own caller. Verified
+    live across all four tabs, with the death fold confirmed through the real UI and the deletion
+    RPC proven against the live project inside a rolled-back transaction. Also caught a
+    verification-technique bug that had been reporting false negatives — see the "State of play"
+    note about the SQL Editor's Run button.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

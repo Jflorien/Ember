@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   newEventId,
@@ -413,7 +414,7 @@ export async function joinCampaignByCode(
   return { campaignId: data as string };
 }
 
-/** Form-bound wrapper around joinCampaignByCode for the inline /play form. */
+/** Form-bound wrapper around joinCampaignByCode for the /play join form. */
 export async function joinCampaignAction(
   _prevState: EventActionState,
   formData: FormData,
@@ -428,8 +429,10 @@ export async function joinCampaignAction(
     return { error: result.error };
   }
 
-  revalidatePath("/play");
-  return {};
+  revalidatePath("/play", "layout");
+  // The RPC hands back the campaign it joined, so land the player inside it
+  // instead of back on the join form with no sign anything happened.
+  redirect(`/play/session?campaign=${result.campaignId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -476,6 +479,88 @@ export async function getPartyMembers(campaignId: string): Promise<PartyMember[]
       maxHp: sheet.maxHp,
       ownerId: row.owner_id,
       portraitUrl: row.portrait_url,
+    };
+  });
+}
+
+export type RosterCharacter = {
+  characterId: string;
+  name: string;
+  class: string | null;
+  level: number;
+  portraitUrl: string | null;
+  campaignId: string;
+  campaignName: string;
+  sheet: CharacterSheet;
+  dead: boolean;
+  causeOfDeath: string | null;
+};
+
+/**
+ * Character Roster Panel (Player Meta Panels) — every character this user
+ * owns, across every campaign, split alive/dead by the caller.
+ *
+ * "Dead" is folded from the event log like everything else in this app:
+ * a character is dead if any committed `death` event names it. There is no
+ * revival event yet, so death is terminal — worth revisiting when a real
+ * raise-dead mechanic exists, since the fold would then become
+ * last-event-wins the way terrain and position already are.
+ */
+export async function getMyCharacters(): Promise<RosterCharacter[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data, error } = await supabase
+    .from("characters")
+    .select("id, name, class, level, sheet, portrait_url, campaign_id, campaigns(name)")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  // One query for every death event naming any of these characters, rather
+  // than one per character.
+  const characterIds = rows.map((row) => row.id);
+  const { data: deaths, error: deathError } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("type", "death")
+    .in("payload->>targetId", characterIds);
+
+  if (deathError) throw new Error(deathError.message);
+
+  const deathByCharacter = new Map<string, string | null>();
+  for (const row of deaths ?? []) {
+    const payload = row.payload as { targetId?: string; cause?: string | null };
+    if (typeof payload?.targetId === "string" && !deathByCharacter.has(payload.targetId)) {
+      deathByCharacter.set(payload.targetId, payload.cause ?? null);
+    }
+  }
+
+  type CampaignRef = { name: string };
+  return rows.map((row) => {
+    const campaign = row.campaigns as unknown as CampaignRef | CampaignRef[] | null;
+    const campaignName = Array.isArray(campaign)
+      ? (campaign[0]?.name ?? "Unknown campaign")
+      : (campaign?.name ?? "Unknown campaign");
+
+    return {
+      characterId: row.id,
+      name: row.name,
+      class: row.class,
+      level: row.level,
+      portraitUrl: row.portrait_url,
+      campaignId: row.campaign_id,
+      campaignName,
+      sheet: readCharacterSheet(row.sheet),
+      dead: deathByCharacter.has(row.id),
+      causeOfDeath: deathByCharacter.get(row.id) ?? null,
     };
   });
 }
@@ -604,8 +689,8 @@ export async function createCharacter(
     return { error: error.message };
   }
 
-  revalidatePath("/play");
-  return {};
+  revalidatePath("/play", "layout");
+  redirect(`/play/session?campaign=${campaignId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1033,6 +1118,57 @@ export async function proposeLootEvent(
 
   const supabase = await createClient();
   return insertEvent(supabase, candidate.data);
+}
+
+/**
+ * DM-only on purpose — 0012 deliberately leaves `death` out of
+ * events_insert_player_self_action. A player can self-report damage, healing
+ * and conditions; declaring a character dead is the DM's call. There is no
+ * revival event yet, so this is terminal: the roster reads any `death` event
+ * naming a character as "that character is dead."
+ */
+export async function proposeDeathEvent(
+  sessionId: string,
+  targetId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const cause = String(formData.get("cause") ?? "").trim();
+
+  const supabase = await createClient();
+
+  // Denormalized into the payload so the log still reads correctly if the
+  // character row is deleted later — same reasoning as cast's spellName.
+  const { data: character } = await supabase
+    .from("characters")
+    .select("name")
+    .eq("id", targetId)
+    .maybeSingle();
+
+  const candidate = proposedGameEventSchema.safeParse({
+    id: newEventId(),
+    session_id: sessionId,
+    type: "death",
+    actor: null,
+    payload: {
+      v: 1,
+      targetId,
+      cause: cause || null,
+      characterName: character?.name ?? null,
+    },
+    visibility: readVisibility(formData),
+    proposed_by: "human",
+  });
+
+  if (!candidate.success) {
+    return { error: candidate.error.issues[0]?.message ?? "Invalid event." };
+  }
+
+  const result = await insertEvent(supabase, candidate.data);
+  if (!result.error) {
+    revalidatePath("/play/characters");
+  }
+  return result;
 }
 
 /**

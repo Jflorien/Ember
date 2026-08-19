@@ -22,11 +22,11 @@ export default async function JoinCampaignPage({
           Double-check the invite code with your DM, or head back to your table.
         </p>
         <Link href="/play" className="btn btn-forge mt-8">
-          Go to /play
+          Go to your dashboard
         </Link>
       </main>
     );
   }
 
-  redirect("/play");
+  redirect(`/play/session?campaign=${result.campaignId}`);
 }
