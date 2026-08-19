@@ -423,6 +423,44 @@ unedited suggestion verbatim sets `proposed_by: "model"` — the first real use 
 the actual Claude round-trip is not yet verified live — no key was available this session, so
 ship-without-live-verification was the explicit call here, unlike every other feature in this log.
 
+The **Player Dashboard** got its first real pass beyond the "early proof" HP bar — character
+creation now covers ability scores, AC, speed and saving throw proficiencies, and `/play` gained
+the Core Character Stats Panel plus real portrait uploads. `src/lib/characters/sheet.ts` holds
+the versioned (`v: 1`, same reasoning as `GameEvent` payloads) `characterSheetSchema` — ability
+scores, AC, speed, saving-throw proficiencies — plus the derived-stat helpers (`abilityModifier`,
+`proficiencyBonusForLevel`, `passivePerception`, `initiativeModifier`, `savingThrowModifier`) and
+`readCharacterSheet`, which every reader now goes through so a pre-existing character's bare
+`{maxHp}` sheet degrades to an untrained baseline (all 10s, AC 10, 30ft speed) instead of crashing.
+`CreateCharacterForm` assigns the SRD standard array (15/14/13/12/10/8) across the six abilities
+via six selects that swap on collision, so the "each value used once" invariant holds
+client-side and is still re-checked server-side in `createCharacter`; point buy and rolling aren't
+built. `CoreCharacterStats` (`/play` only, In-Session Player Dashboard Panels §2) renders AC,
+Initiative, Speed, all six ability scores with modifiers, saving throws with proficiency
+highlighting, and Passive Perception — the last one always untrained (10 + WIS mod) since no
+skill-proficiency system exists yet. Avatars are real: `characters.portrait_url` existed since
+`0001_init.sql` with nothing to populate it — `0011_character_portraits_storage.sql` adds a public
+`character-portraits` Storage bucket, RLS-gated on writes by the same `owns_character` helper
+`0006` already uses (path's first segment is the character id), and `updateCharacterPortrait`
+(`src/app/dm/actions.ts`) uploads server-side through the same Supabase client every other write
+in this app uses — never the browser client directly. `PortraitThumb` (initials-fallback avatar
+tile, reusing `.plate` rather than a hand-rolled clip-path) now shows on the character sheet, the
+upload control, and every Party Status Strip tile on both `/dm` and `/play`. Verified live: a
+real character created through the actual `/play` UI with a full ability-score assignment (STR/CON
+swapped via the picker) and two saving-throw proficiencies, confirming AC 12, Initiative +2, and
+saving throw modifiers (+3 STR, +4 CON, proficiency bonus correctly applied; all other saves at
+raw modifier) rendered correctly by `CoreCharacterStats`; a pre-existing character (bare `{maxHp}`
+sheet, created before this shipped) confirmed still rendering via the legacy-fallback path (AC 10,
+all scores 10, all saves +0). The avatar upload's storage RLS was verified with the same
+simulated-second-user SQL technique as every other RLS test in this project (owner insert/update
+accepted, non-owner insert/update rejected, anon select allowed) — the live browser file-upload
+click-through itself wasn't completed this session, since the real Chrome profile used for the
+Supabase dashboard has no session cookie for the app itself; a permanent CI test
+(`supabase/tests/character_portraits_test.sql`) covers the same RLS logic going forward. Also
+fixed in passing: `.next-verify` (the `NEXT_BUILD_DIR`-redirected verification build output) was
+never excluded from ESLint, so a leftover verification build silently broke `npm run lint` with
+thousands of unrelated errors from its generated `.d.ts`/`.ts` files — added to `eslint.config.mjs`
+alongside `.next`.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying
@@ -431,12 +469,14 @@ one automatically), `death` (needs a real "character is down" state — distinct
 nothing uses it yet — that's fog of war, which needs cells to have a default-hidden state per
 player first), known-spells/spell-slot tracking on the character sheet (right now any caster can
 pick any spell at any slot level), spell slots and inventory more broadly, map upload/resize
-(fixed 16×10 for now), the NPC/monster/encounter-staging panels from the DM console spec, the
-player app's Core Character Stats beyond HP (ability scores, saves, passive perception — no data
-model yet) and the rest of the Actions & Spells panel (spell *browsing* on `/play` — the
-compendium exists now, but nothing surfaces it there yet). The AI co-pilot itself only suggests
-narration text — it doesn't call for rolls, adjudicate, or propose mechanical events, and there's
-no autonomous "AI as DM" mode.
+(fixed 16×10 for now), the NPC/monster/encounter-staging panels from the DM console spec, skills
+and proficiencies (so Passive Perception and any future skill checks stay untrained-only), point
+buy/rolled ability scores, the rest of the Character Creation/Level Up wizard (background,
+alignment, spells-known-at-creation, starting equipment/gold, the level-up flow itself), and the
+rest of the Actions & Spells panel (spell *browsing* on `/play` — the compendium exists now, but
+nothing surfaces it there yet). The AI co-pilot itself only suggests narration text — it doesn't
+call for rolls, adjudicate, or propose mechanical events, and there's no autonomous "AI as DM"
+mode.
 
 ### Next, in order
 
@@ -546,6 +586,26 @@ no autonomous "AI as DM" mode.
     live that the missing-key error path surfaces correctly through the actual `/dm` UI; the real
     Claude round-trip is unverified pending an `ANTHROPIC_API_KEY` in `.env.local` — shipped
     without live verification on request, the one exception to this project's usual rule.
+19. ~~Player Dashboard: character creation stats + avatars.~~ Done, on request ("character
+    creation, avatar, stats, models, everything") — scoped to the two Notion panels that had zero
+    data model yet: Abilities & Stats (creation) and Core Character Stats (in-session). Ability
+    scores/AC/speed/saving-throw proficiencies now live in a versioned `characters.sheet` shape
+    (`src/lib/characters/sheet.ts`), and `characters.portrait_url` — unused since `0001_init.sql`
+    — now has a real Storage bucket behind it (`0011_character_portraits_storage.sql`), RLS-gated
+    by the same `owns_character` helper player-self-action events use. Skills/proficiencies,
+    equipment/gold, and spells-known-at-creation — the rest of the Character Creation/Level Up
+    wizard spec — stayed unbuilt on purpose, matching how every other feature in this log scopes
+    to one real vertical slice rather than a half-built pass across five specs at once. Verified
+    live: a character created through the real `/play` UI with the standard-array picker (STR/CON
+    swapped) and two save proficiencies, confirming every derived stat (AC, initiative, saving
+    throw modifiers with correct proficiency-bonus application) rendered correctly, plus a
+    pre-existing character confirmed still rendering via the new legacy-sheet fallback. The
+    portrait Storage RLS was verified with the simulated-second-user SQL technique (owner
+    accepted, non-owner rejected) and gained a permanent CI test; the actual browser file-upload
+    click-through is the one piece not verified live this session (the Chrome profile used for
+    the Supabase dashboard has no app session cookie) — shipped without that one verification, on
+    the same "document the gap honestly" precedent as the AI co-pilot's unverified Claude
+    round-trip.
 
 One live-project setting was changed to unblock local testing: **Confirm email is currently off**
 on the `ember` Supabase project (Auth → Sign In / Providers). Turn it back on before real users

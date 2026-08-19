@@ -49,5 +49,10 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/player_self_action_test.sql
+      - name: Run character portrait storage RLS test
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/character_portraits_test.sql
       - run: supabase stop
         if: always()

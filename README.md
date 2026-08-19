@@ -150,7 +150,14 @@ and never on behalf of a character they don't own.
   character, not just the first one created.
 - Spell slots and inventory on the character sheet. Class and level are real
   now (`characters.class`/`.level`, set at creation and shown in `/play`'s
-  Session Header), but ability scores, saves, and race still aren't.
+  Session Header), and so are ability scores, AC, speed, saving throw
+  proficiencies, and passive perception (`src/lib/characters/sheet.ts`,
+  rendered by `CoreCharacterStats` on `/play`) — race, skills/proficiencies,
+  and equipment/gold still aren't. Character creation assigns the SRD
+  standard array only; point buy and rolling aren't built. Characters can
+  now have a real portrait (`character-portraits` Storage bucket, RLS-gated
+  to the character's owner), shown on the sheet and every Party Status Strip
+  tile with an initials fallback when there isn't one yet.
 - The AI dungeon master itself. A narration co-pilot exists (`ANTHROPIC_API_KEY`, see
   `.env.example`) — the DM types what should happen and Claude drafts narration text from the
   campaign's recent event log, but it only suggests prose: it never rolls dice, adjudicates, or

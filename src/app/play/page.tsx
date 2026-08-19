@@ -15,6 +15,8 @@ import { CharacterConditions } from "@/components/character-conditions";
 import { PartyStatusStrip } from "@/components/party-status-strip";
 import { RoundBadge } from "@/components/round-badge";
 import { PlayerActionPanel } from "@/components/player-action-panel";
+import { CharacterPortraitUpload } from "@/components/character-portrait-upload";
+import { CoreCharacterStats } from "@/components/core-character-stats";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -99,6 +101,11 @@ async function PlayerSheetBody({
       <RoundBadge sessionId={sessionId} />
 
       <div className="plate flex flex-col gap-4 p-6">
+        <CharacterPortraitUpload
+          characterId={character.characterId}
+          currentUrl={character.portraitUrl}
+          name={character.name}
+        />
         <CharacterHp
           sessionId={sessionId}
           characterId={character.characterId}
@@ -111,6 +118,10 @@ async function PlayerSheetBody({
           <div className="runic mb-2">Conditions</div>
           <CharacterConditions sessionId={sessionId} characterId={character.characterId} />
         </div>
+      </div>
+
+      <div className="plate p-6">
+        <CoreCharacterStats sheet={character.sheet} level={character.level} />
       </div>
 
       <div>

@@ -27,6 +27,7 @@ export function PartyStatusStrip({
           characterId={member.characterId}
           name={member.name}
           maxHp={member.maxHp}
+          portraitUrl={member.portraitUrl}
         />
       ))}
     </div>

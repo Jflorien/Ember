@@ -12,6 +12,13 @@ import {
 } from "@/lib/events";
 import { rollDice } from "@/lib/dice";
 import { cellDistance, FEET_PER_CELL } from "@/lib/grid";
+import {
+  ABILITY_KEYS,
+  STANDARD_ARRAY,
+  readCharacterSheet,
+  type AbilityKey,
+  type CharacterSheet,
+} from "@/lib/characters/sheet";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type EventActionState = {
@@ -431,11 +438,20 @@ export async function joinCampaignAction(
 
 export type MyCharacter = {
   characterId: string;
+  name: string;
   maxHp: number;
   class: string | null;
   level: number;
+  sheet: CharacterSheet;
+  portraitUrl: string | null;
 };
-export type PartyMember = { characterId: string; name: string; maxHp: number; ownerId: string };
+export type PartyMember = {
+  characterId: string;
+  name: string;
+  maxHp: number;
+  ownerId: string;
+  portraitUrl: string | null;
+};
 
 /**
  * Every character in a campaign, for the Party Status Strip, the DM
@@ -446,19 +462,20 @@ export async function getPartyMembers(campaignId: string): Promise<PartyMember[]
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("characters")
-    .select("id, name, sheet, owner_id")
+    .select("id, name, sheet, owner_id, portrait_url")
     .eq("campaign_id", campaignId)
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => {
-    const sheet = row.sheet as { maxHp?: number } | null;
+    const sheet = readCharacterSheet(row.sheet);
     return {
       characterId: row.id,
       name: row.name,
-      maxHp: sheet?.maxHp ?? 20,
+      maxHp: sheet.maxHp,
       ownerId: row.owner_id,
+      portraitUrl: row.portrait_url,
     };
   });
 }
@@ -473,7 +490,7 @@ export async function getMyCharacter(campaignId: string): Promise<MyCharacter | 
 
   const { data, error } = await supabase
     .from("characters")
-    .select("id, sheet, class, level")
+    .select("id, name, sheet, class, level, portrait_url")
     .eq("campaign_id", campaignId)
     .eq("owner_id", user.id)
     .order("created_at", { ascending: true })
@@ -483,12 +500,15 @@ export async function getMyCharacter(campaignId: string): Promise<MyCharacter | 
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  const sheet = data.sheet as { maxHp?: number } | null;
+  const sheet = readCharacterSheet(data.sheet);
   return {
     characterId: data.id,
-    maxHp: sheet?.maxHp ?? 20,
+    name: data.name,
+    maxHp: sheet.maxHp,
     class: data.class,
     level: data.level,
+    sheet,
+    portraitUrl: data.portrait_url,
   };
 }
 
@@ -497,7 +517,10 @@ export async function getMyCharacter(campaignId: string): Promise<MyCharacter | 
  * character." Max HP is still a fixed default — there's no leveling system
  * to derive it from yet. class is freeform text (matches `characters.class`,
  * no SRD-class catalog required — Ember's own classes aren't seeded either,
- * so a fixed dropdown would be wrong even once SRD content exists).
+ * so a fixed dropdown would be wrong even once SRD content exists). Ability
+ * scores come from the SRD standard array (15/14/13/12/10/8), the only
+ * generation method built so far — point buy and rolling are real future
+ * options this form doesn't offer yet.
  */
 export async function createCharacter(
   campaignId: string,
@@ -517,6 +540,51 @@ export async function createCharacter(
     return { error: "Level must be a whole number from 1 to 20." };
   }
 
+  const abilityScores = {} as Record<AbilityKey, number>;
+  const usedScores: number[] = [];
+  for (const key of ABILITY_KEYS) {
+    const raw = Number(formData.get(`ability-${key}`));
+    if (!Number.isInteger(raw)) {
+      return { error: "Every ability score must be assigned from the standard array." };
+    }
+    abilityScores[key] = raw;
+    usedScores.push(raw);
+  }
+  const standardArraySorted = [...STANDARD_ARRAY].sort((a, b) => a - b);
+  if (JSON.stringify(usedScores.sort((a, b) => a - b)) !== JSON.stringify(standardArraySorted)) {
+    return {
+      error: "Each standard array value (15, 14, 13, 12, 10, 8) must be used exactly once.",
+    };
+  }
+
+  const dexMod = Math.floor((abilityScores.dex - 10) / 2);
+  const acRaw = formData.get("ac");
+  const ac =
+    acRaw && String(acRaw).trim() !== "" ? Number(acRaw) : 10 + dexMod;
+  if (!Number.isInteger(ac) || ac < 1) {
+    return { error: "Armor class must be a positive whole number." };
+  }
+
+  const speedRaw = formData.get("speed");
+  const speed = speedRaw && String(speedRaw).trim() !== "" ? Number(speedRaw) : 30;
+  if (!Number.isInteger(speed) || speed < 0) {
+    return { error: "Speed must be a whole number of feet." };
+  }
+
+  const savingThrowProficiencies = formData
+    .getAll("saveProficiencies")
+    .map((value) => String(value))
+    .filter((value): value is AbilityKey => (ABILITY_KEYS as readonly string[]).includes(value));
+
+  const sheet: CharacterSheet = {
+    v: 1,
+    maxHp: 20,
+    ac,
+    speed,
+    abilityScores,
+    savingThrowProficiencies,
+  };
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -529,7 +597,7 @@ export async function createCharacter(
     name,
     class: characterClass || null,
     level,
-    sheet: { maxHp: 20 },
+    sheet,
   });
 
   if (error) {
@@ -768,8 +836,7 @@ export async function proposeAttackEvent(
     return { error: "Couldn't find the target's armor class." };
   }
 
-  const targetSheet = targetCharacter.sheet as { ac?: number } | null;
-  const targetAc = targetSheet?.ac ?? 10;
+  const targetAc = readCharacterSheet(targetCharacter.sheet).ac;
 
   const dieCount = advantage === "normal" ? 1 : 2;
   const { rolls, seed } = rollDice(20, dieCount);
@@ -1169,4 +1236,69 @@ export async function proposeAdvanceRoundEvent(sessionId: string): Promise<Event
   }
 
   return insertEvent(supabase, candidate.data);
+}
+
+const MAX_PORTRAIT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PORTRAIT_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
+/**
+ * Uploads to the `character-portraits` Storage bucket (0011) and stamps the
+ * public URL onto `characters.portrait_url`. Runs server-side with the same
+ * auth session as every other write here — RLS on storage.objects (owns_character)
+ * is the real gate, not this check, but failing fast with a clear message is
+ * better than a generic storage error.
+ */
+export async function updateCharacterPortrait(
+  characterId: string,
+  _prevState: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const file = formData.get("portrait");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image to upload." };
+  }
+  if (!ALLOWED_PORTRAIT_TYPES.includes(file.type)) {
+    return { error: "Portrait must be a PNG, JPEG, WebP, or GIF image." };
+  }
+  if (file.size > MAX_PORTRAIT_BYTES) {
+    return { error: "Portrait must be under 5MB." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const extension = file.type.split("/")[1] ?? "png";
+  const path = `${characterId}/portrait.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("character-portraits")
+    .upload(path, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from("character-portraits")
+    .getPublicUrl(path);
+
+  // Cache-bust: the path is stable (one portrait per character), so an
+  // unchanged URL would keep serving a cached old image after re-upload.
+  const portraitUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+  const { error: updateError } = await supabase
+    .from("characters")
+    .update({ portrait_url: portraitUrl })
+    .eq("id", characterId);
+
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  revalidatePath("/play");
+  revalidatePath("/dm");
+  return {};
 }
