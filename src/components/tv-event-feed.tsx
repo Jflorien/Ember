@@ -53,9 +53,13 @@ export function TvEventFeed({
   limit?: number;
   members?: PartyMember[];
 }) {
-  const events = useSessionEvents(sessionId);
+  const allEvents = useSessionEvents(sessionId);
   const nameFor = (id: string) =>
     members.find((member) => member.characterId === id)?.name;
+
+  // Same reasoning as LiveEventFeed: terrain is map authoring, and the TV is
+  // already showing the map it produced.
+  const events = allEvents.filter((event) => event.type !== "terrain");
 
   if (events.length === 0) {
     return <p className="font-mono text-sm text-ash-500">Nothing has happened yet.</p>;

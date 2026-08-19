@@ -52,9 +52,15 @@ export function LiveEventFeed({
   sessionId: string;
   members?: PartyMember[];
 }) {
-  const events = useSessionEvents(sessionId);
+  const allEvents = useSessionEvents(sessionId);
   const nameFor = (id: string) =>
     members.find((member) => member.characterId === id)?.name;
+
+  // Terrain placement is map authoring, not story. Drawing a room is dozens
+  // of events, and leaving them in buries the narrative under "wall placed
+  // at 3, 2" — the map itself is where terrain is verified. `destroy` stays:
+  // something being wrecked is a beat the table cares about.
+  const events = allEvents.filter((event) => event.type !== "terrain");
 
   if (events.length === 0) {
     return <p className="font-mono text-sm text-ash-500">No events yet.</p>;

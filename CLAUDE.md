@@ -557,6 +557,37 @@ image, so a correct full-width layout can look like it occupies the top-left thi
 That misread sent me chasing two non-existent layout bugs; `getBoundingClientRect` measurements
 settled it both times. Measure the DOM, don't eyeball a scaled screenshot.
 
+A **seeded demo encounter** closes the last gap between "the systems work" and "there is
+something to show": `seedDemoCampaign` (`src/app/dm/demo-actions.ts`, a new file rather than
+growing `actions.ts`) builds a whole campaign in one click — *The Ashfall Crypt*, a party of
+three, a mapped crypt chamber (outer wall with a doorway, two brazier hazards, collapsed rubble,
+destructible grave goods), and an event log with a real fight already in progress.
+
+It always creates a **new** campaign rather than filling in an existing one, so seeding is
+repeatable and can never touch real table data. Everything goes through the same tables,
+triggers and RLS as hand-authored play — there is no "demo mode" branch anywhere in the app, and
+a seeded campaign is indistinguishable from one built by hand. That's deliberate: if the demo
+renders, the real thing renders. The attack rolls are real `rollDice` draws with the seed and raw
+rolls committed, so even the demo's numbers are auditable, and the `cast` event points at the
+actual Thunderwave row in the `spells` table rather than a plausible-looking uuid.
+
+Two things fell out of building it. First, **the monster is a character row owned by the DM** —
+`attack`'s validation trigger requires a real character in the same campaign, and there is no NPC
+or stat-block model, so until there is one an NPC *is* a character. The visible cost is that the
+Cinder Wight appears in the Party strip with its HP on `/table`, which players shouldn't see;
+that's the clearest argument yet for an NPC model being the next backend piece. Second,
+**`terrain` events are now filtered out of both event feeds**. Drawing a room is ~44 events, and
+leaving them in buried the narrative under "wall placed at 3, 2" — terrain is map authoring, not
+story, and the map itself is where it's verified. `destroy` stays in, because something being
+wrecked is a beat the table cares about.
+
+Verified live end to end: seeded from the real `/dm` empty state, then confirmed all three
+surfaces render the same seeded session — the console's map, party and log; `/table` showing the
+chamber, four wrapped party tiles and the heat-recency feed; and `/play` showing Rowan Ashbound
+at 21/32 with a `frightened 2r` pill. The HP folds check out against the seeded damage
+(45−13−9=23, 32−11=21, 34−5=29), which is the real test that the demo is data and not a picture.
+The party strip also stopped scrolling horizontally and wraps instead — nobody scrolls a TV.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying

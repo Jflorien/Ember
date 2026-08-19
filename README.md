@@ -144,6 +144,11 @@ and never on behalf of a character they don't own.
   `src/components/visibility-select.tsx`) and `dm_only` events can be
   revealed to the party as a new public event without mutating the hidden
   one — the log stays append-only either way.
+- NPCs and monsters. There's no stat-block or NPC model, and `attack`
+  requires a real character in the same campaign — so the demo seeder
+  (below) makes its monster a character row owned by the DM, which is why
+  it shows up in the Party strip with visible HP. Encounter staging is
+  unbuilt for the same reason.
 - Promoting a member to co-DM. `MemberManagement` on `/dm` covers kicking a
   member and switching them between `player`/`spectator`, and
   `InviteCodeDisplay` can regenerate the invite code, but the role select
@@ -180,7 +185,20 @@ and never on behalf of a character they don't own.
   caller, and it cascades to every campaign that account owns.
 - Email capture on the homepage CTA is intentionally non-functional (styled
   only, per spec) — it doesn't post anywhere.
-- No automated tests.
+- No automated tests of the UI (the SQL/RLS tests in `supabase/tests/` do
+  run in CI on every push).
+
+## Seeing it with content in it
+
+The DM console's empty state has a **Load example encounter** button
+(`src/app/dm/demo-actions.ts`). It creates a fresh campaign — *The Ashfall
+Crypt*, three characters, a mapped crypt chamber, and an event log with a
+fight already underway — so all three surfaces have something real to
+render. It never modifies an existing campaign, and it writes through the
+same tables, triggers and RLS as normal play: there is no demo-mode branch
+in the app, and a seeded campaign behaves exactly like a hand-built one.
+Requires `0009_spells.sql` to have run, since the seeded `cast` event
+references a real row in `spells`.
 
 ## Fonts
 

@@ -23,8 +23,10 @@ export function PartyStatusStrip({
 
   return (
     <div
+      // Wraps rather than scrolls horizontally: nobody scrolls a TV, and on a
+      // phone a second row beats a hidden fourth party member.
       className={
-        layout === "column" ? "flex flex-col gap-2" : "flex gap-3 overflow-x-auto pb-2"
+        layout === "column" ? "flex flex-col gap-2" : "flex flex-wrap gap-3"
       }
     >
       {members.map((member) => (

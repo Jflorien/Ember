@@ -18,6 +18,7 @@ import { RoundTracker } from "@/components/round-tracker";
 import { MemberManagement } from "@/components/member-management";
 import { MapControlPanel } from "@/components/map-control-panel";
 import { ConsolePanel } from "@/components/console-panel";
+import { SeedDemoButton } from "@/components/seed-demo-button";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -68,8 +69,18 @@ export default async function DmConsolePage({
       </header>
 
       {!campaign ? (
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-16">
           <CreateCampaignForm />
+
+          <div className="plate flex flex-col gap-3 p-6">
+            <span className="runic">Or start from an example</span>
+            <p className="text-sm text-ash-300">
+              Builds a fresh campaign — a party of three, a mapped crypt, and a fight already
+              in progress — so every surface has something to show. It uses the same tables and
+              rules as a table you build by hand; nothing about it is a mock.
+            </p>
+            <SeedDemoButton />
+          </div>
         </div>
       ) : (
         <DmConsoleBody

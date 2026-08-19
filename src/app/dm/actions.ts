@@ -1,8 +1,8 @@
 "use server";
 
-import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { generateInviteCode } from "@/lib/invite-code";
 import { createClient } from "@/lib/supabase/server";
 import {
   newEventId,
@@ -43,21 +43,10 @@ async function insertEvent(
   return error ? { error: error.message } : {};
 }
 
-const INVITE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
-
 /** Falls back to 'public' when a composer's visibility select is absent. */
 function readVisibility(formData: FormData): string {
   const raw = formData.get("visibility");
   return typeof raw === "string" && raw.trim() !== "" ? raw : "public";
-}
-
-function generateInviteCode(length = 8): string {
-  const bytes = randomBytes(length);
-  let code = "";
-  for (let i = 0; i < length; i++) {
-    code += INVITE_CODE_ALPHABET[bytes[i] % INVITE_CODE_ALPHABET.length];
-  }
-  return code;
 }
 
 // ---------------------------------------------------------------------------
