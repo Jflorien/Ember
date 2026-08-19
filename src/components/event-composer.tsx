@@ -47,9 +47,9 @@ export function EventComposer({
           setText("");
           setAiSuggested(false);
         }}
-        className="flex items-end gap-3"
+        className="flex flex-col gap-3"
       >
-        <div className="field max-w-none flex-1">
+        <div className="field max-w-none">
           <label htmlFor="narration-text">Narration</label>
           <input
             id="narration-text"
@@ -77,9 +77,9 @@ export function EventComposer({
 
       <form
         action={suggestFormAction}
-        className="flex items-end gap-3 border-t border-iron-800 pt-2"
+        className="flex flex-col gap-3 border-t border-basalt-700 pt-3"
       >
-        <div className="field max-w-none flex-1">
+        <div className="field max-w-none">
           <label htmlFor="copilot-prompt">AI co-pilot</label>
           <input
             id="copilot-prompt"

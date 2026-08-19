@@ -23,6 +23,9 @@ export function PartyMemberTile({
   const activeConditions = Object.keys(conditions).filter((name) => conditions[name].active);
 
   return (
+    // No w-full: in the column layout flexbox already stretches children to
+    // full width, and in the horizontal strip w-full would make every tile
+    // claim the entire rail.
     <div className="plate flex min-w-[160px] flex-col gap-2 p-3">
       <div className="flex items-center gap-2">
         <PortraitThumb url={portraitUrl ?? null} name={name} size={24} />

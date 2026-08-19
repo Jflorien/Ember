@@ -2,6 +2,7 @@
 
 import { useSessionEvents } from "@/lib/hooks/use-session-events";
 import { describeEvent } from "@/lib/events";
+import type { PartyMember } from "@/app/dm/actions";
 
 /**
  * Rank 0 = newest. Four heat tiers, each pairing size *and* color so the
@@ -43,8 +44,18 @@ function tierForRank(rank: number) {
  * recede — "heat is state" applied to recency instead of just resources.
  * Same live data as LiveEventFeed (useSessionEvents), different heat map.
  */
-export function TvEventFeed({ sessionId, limit = 8 }: { sessionId: string; limit?: number }) {
+export function TvEventFeed({
+  sessionId,
+  limit = 8,
+  members = [],
+}: {
+  sessionId: string;
+  limit?: number;
+  members?: PartyMember[];
+}) {
   const events = useSessionEvents(sessionId);
+  const nameFor = (id: string) =>
+    members.find((member) => member.characterId === id)?.name;
 
   if (events.length === 0) {
     return <p className="font-mono text-sm text-ash-500">Nothing has happened yet.</p>;
@@ -59,7 +70,7 @@ export function TvEventFeed({ sessionId, limit = 8 }: { sessionId: string; limit
         return (
           <li key={event.id} className={`flex items-baseline gap-4 ${tier.wrap}`}>
             <span className={`font-mono text-xs tabular-nums ${tier.seq}`}>#{event.seq}</span>
-            <span className={tier.text}>{describeEvent(event)}</span>
+            <span className={tier.text}>{describeEvent(event, nameFor)}</span>
           </li>
         );
       })}

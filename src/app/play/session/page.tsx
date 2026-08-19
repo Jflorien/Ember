@@ -81,20 +81,19 @@ async function PlayerSheetBody({
 
   return (
     <>
-      <div>
-        <span className="runic hot">Current game</span>
-        <h1 className="font-display mt-4 text-2xl font-bold tracking-tight text-ash-050">
-          HP that&rsquo;s never stored.
-        </h1>
-        <p className="mt-2 text-sm text-ash-300">
-          This bar isn&rsquo;t a column that got updated — it&rsquo;s
-          recomputed from every <code className="font-mono text-ash-100">damage</code> and{" "}
-          <code className="font-mono text-ash-100">heal</code> event
-          committed for this character, live over Realtime.
-        </p>
+      {/* The player's own sheet leads with who they are, not with how the
+          engine works — the old headline here explained event sourcing. */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-display truncate text-2xl font-bold tracking-tight text-ash-050">
+            {character.name}
+          </h1>
+          <p className="truncate font-mono text-xs text-ash-500">
+            {character.class ? `${character.class} · ` : ""}Level {character.level}
+          </p>
+        </div>
+        <RoundBadge sessionId={sessionId} />
       </div>
-
-      <RoundBadge sessionId={sessionId} />
 
       <div className="plate flex flex-col gap-4 p-6">
         <CharacterPortraitUpload
@@ -106,9 +105,7 @@ async function PlayerSheetBody({
           sessionId={sessionId}
           characterId={character.characterId}
           maxHp={character.maxHp}
-          label={
-            character.class ? `Your character — ${character.class}, Lv ${character.level}` : "Your character"
-          }
+          label="Hit points"
         />
         <div>
           <div className="runic mb-2">Conditions</div>

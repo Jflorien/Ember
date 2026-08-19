@@ -518,6 +518,45 @@ the *previous* query's output — together those reported "0 rows" for a `select
 is impossible and is what exposed it. Three `death` events had committed correctly the whole
 time. Click the Run button and read the result from a screenshot, never from scraped innerText.
 
+A **presentation pass on the three surfaces**, on request ("focus on building the product
+frontend... having something to present") — no new backend, purely how the built systems read.
+
+`/dm` was the worst of the three: a ~520px column on a 1280px desktop, headed "Propose an event.
+Watch it commit." over a paragraph about zod and Realtime, with all eight composers rendered at
+once so the DM scrolled past seven forms to reach the one they wanted. It reads as a test
+harness because that's what it grew from. It's now a real three-rail console — party/turn/invite
+left, map and event console centre, session log right — viewport-locked at `xl` so each rail
+scrolls independently, and stacking back to one column below that. `ConsolePanel` gives each
+region an actual header and edge; `EventConsole` replaces the stack with tabs (Narration, Attack,
+Damage/Heal, Condition, Cast, Loot, Death), with the attacker/target pickers lifted above the
+tabs since they're shared context that shouldn't reset when the DM switches action.
+
+`/table` was a centred `max-w-5xl` column, which on a 16:9 TV left most of the screen empty and
+pushed the log below the fold. Map and log sit side by side now, the campaign name and round are
+a real header, and the party rail is on screen — "heat is state" only means anything if HP is
+actually readable from the sofa. `MapGrid` gained a `size` prop so glyphs and tokens step up on
+the TV, and its gridlines moved from basalt-800 to basalt-700: against basalt-900 cells the old
+pairing was so close in luminance that the map read as a flat dark slab.
+
+The biggest content fix was `describeEvent`, which only had cases for 6 of 13 event types —
+everything else rendered as a bare `[damage]`, `[terrain]`, `[move]`. Every type has a case now,
+and it takes an optional `NameLookup` so lines read "Kira Stormwind takes 6 fire damage" instead
+of a uuid. The lookup is a parameter rather than a name denormalised into each payload precisely
+because the parameter fixes *already-committed* events too. `LiveEventFeed` also flipped to
+newest-first, which is what a rail is read for.
+
+Two Tailwind/CSS gotchas worth keeping alongside the `shadow-[var(--glow-md)]` one: `h-[calc(100vh-3.5rem)]`
+is silently dropped because `calc()` needs spaces around the `-` (Tailwind arbitrary values want
+`calc(100vh_-_3.5rem)`, underscores becoming spaces) — and even once valid it was the wrong fix,
+since `flex-1` on a child of a growing parent wins over an explicit height; the parent needed
+`h-screen`. Also: a `{/* */}` comment placed before the single root element of a `return (...)`
+is a syntax error, not a comment.
+
+Verification note: the Browser pane's screenshots letterbox a wide viewport into a fixed-scale
+image, so a correct full-width layout can look like it occupies the top-left third of the screen.
+That misread sent me chasing two non-existent layout bugs; `getBoundingClientRect` measurements
+settled it both times. Measure the DOM, don't eyeball a scaled screenshot.
+
 **Not built:** the rest of the rules engine (attack is one invariant plus one full event type,
 not full legality — nothing yet checks whether a character has the spell slot it's spending, and
 a hit or a damage-dealing spell still requires a manual follow-up damage event rather than applying

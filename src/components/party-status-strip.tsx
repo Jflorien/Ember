@@ -10,16 +10,23 @@ import type { PartyMember } from "@/app/dm/actions";
 export function PartyStatusStrip({
   sessionId,
   members,
+  layout = "row",
 }: {
   sessionId: string;
   members: PartyMember[];
+  /** "column" stacks the tiles for the DM console's left rail; "row" is the phone/TV strip. */
+  layout?: "row" | "column";
 }) {
   if (members.length === 0) {
     return <p className="font-mono text-sm text-ash-500">No characters yet.</p>;
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2">
+    <div
+      className={
+        layout === "column" ? "flex flex-col gap-2" : "flex gap-3 overflow-x-auto pb-2"
+      }
+    >
       {members.map((member) => (
         <PartyMemberTile
           key={member.characterId}

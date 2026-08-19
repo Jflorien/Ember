@@ -10,5 +10,7 @@ export function TableMap({ sessionId, members }: { sessionId: string; members: P
   const terrain = useSessionTerrain(sessionId);
   const positions = useCharacterPositions(sessionId);
 
-  return <MapGrid terrain={terrain} positions={positions} members={members} />;
+  return (
+    <MapGrid terrain={terrain} positions={positions} members={members} size="table" />
+  );
 }

@@ -3,6 +3,7 @@ import { getMyPlayerCampaign, getPartyMembers } from "@/app/dm/actions";
 import { TvEventFeed } from "@/components/tv-event-feed";
 import { RoundBadge } from "@/components/round-badge";
 import { TableMap } from "@/components/table-map";
+import { PartyStatusStrip } from "@/components/party-status-strip";
 
 // This page always reflects a live session; never attempt static generation.
 export const dynamic = "force-dynamic";
@@ -42,19 +43,34 @@ export default async function TableViewPage({
   const { sessionId } = campaign;
   const members = await getPartyMembers(campaign.id);
 
+  // A TV is wide and far away. The old single centred column left most of a
+  // 16:9 screen empty and pushed the log below the fold; map and log sit side
+  // by side now, and the party rail is on-screen because "heat is state" is
+  // only worth anything if HP is actually readable from the sofa.
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-hidden bg-basalt-990 px-10 py-16">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-basalt-990 px-8 py-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(242,100,25,.16),transparent_70%)] blur-3xl"
       />
-      <div className="relative w-full max-w-5xl">
-        <div className="mb-6 flex justify-center">
-          <RoundBadge sessionId={sessionId} />
+
+      <header className="relative mb-5 flex shrink-0 items-center justify-between gap-6">
+        <h1 className="font-display truncate text-3xl font-bold tracking-tight text-ash-050">
+          {campaign.name}
+        </h1>
+        <RoundBadge sessionId={sessionId} />
+      </header>
+
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <div className="flex min-h-0 items-start">
+          <TableMap sessionId={sessionId} members={members} />
         </div>
-        <TableMap sessionId={sessionId} members={members} />
-        <div className="mt-8">
-          <TvEventFeed sessionId={sessionId} limit={4} />
+
+        <div className="flex min-h-0 flex-col gap-6">
+          <PartyStatusStrip sessionId={sessionId} members={members} />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <TvEventFeed sessionId={sessionId} limit={5} members={members} />
+          </div>
         </div>
       </div>
     </main>

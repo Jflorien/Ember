@@ -22,13 +22,18 @@ export function MapGrid({
   members,
   onCellClick,
   interactive = false,
+  size = "console",
 }: {
   terrain: Map<string, TerrainCell>;
   positions: Map<string, { x: number; y: number }>;
   members: PartyMember[];
   onCellClick?: (x: number, y: number) => void;
   interactive?: boolean;
+  /** "table" is the TV: read at four metres, so glyphs and tokens step up. */
+  size?: "console" | "table";
 }) {
+  const glyphSize = size === "table" ? "text-2xl" : "text-xs";
+  const tokenSize = size === "table" ? "text-lg" : "text-[11px]";
   const memberByCharacterId = new Map(members.map((member) => [member.characterId, member]));
   const tokensByCell = new Map<string, PartyMember[]>();
   for (const [characterId, pos] of positions) {
@@ -64,12 +69,22 @@ export function MapGrid({
           }
         >
           {style && (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-ash-400">
+            <span
+              className={
+                "pointer-events-none absolute inset-0 flex items-center justify-center text-ash-300 " +
+                glyphSize
+              }
+            >
               {style.glyph}
             </span>
           )}
           {tokens && tokens.length > 0 && (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] font-bold text-forge-200 [text-shadow:0_0_4px_rgba(0,0,0,.85)]">
+            <span
+              className={
+                "pointer-events-none absolute inset-0 flex items-center justify-center font-bold text-forge-200 [text-shadow:0_0_6px_rgba(0,0,0,.9)] " +
+                tokenSize
+              }
+            >
               {tokens.map((token) => token.name[0]?.toUpperCase()).join("")}
             </span>
           )}
@@ -79,8 +94,11 @@ export function MapGrid({
   }
 
   return (
+    // Gridlines are basalt-700, not -800: against basalt-900 cells the old
+    // pairing was so close in luminance the grid read as a flat dark slab,
+    // which defeats the point of a map you're supposed to count squares on.
     <div
-      className="grid w-full gap-px bg-basalt-800"
+      className="grid w-full gap-px bg-basalt-700"
       style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
     >
       {cells}

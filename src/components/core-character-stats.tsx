@@ -25,8 +25,10 @@ export function CoreCharacterStats({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-3">
+        {/* "Init", not "Initiative" — the runic face is wide enough that the
+            full word clips inside a third of a 375px phone. */}
         <StatTile label="AC" value={String(sheet.ac)} />
-        <StatTile label="Initiative" value={formatModifier(initiativeModifier(sheet))} />
+        <StatTile label="Init" value={formatModifier(initiativeModifier(sheet))} />
         <StatTile label="Speed" value={`${sheet.speed} ft`} />
       </div>
 
